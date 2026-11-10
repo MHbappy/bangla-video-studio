@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>রিসোর্স ম্যানেজার</title>
+<style>
+@font-face { font-family: "Hind Siliguri"; font-weight: 400; src: url(/font/hind-siliguri-bengali-400-normal.woff2) format("woff2"); unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0-1CF9, U+200C-200D, U+20B9, U+25CC, U+A8F1; }
+@font-face { font-family: "Hind Siliguri"; font-weight: 600; src: url(/font/hind-siliguri-bengali-600-normal.woff2) format("woff2"); unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0-1CF9, U+200C-200D, U+20B9, U+25CC, U+A8F1; }
+@font-face { font-family: "Hind Siliguri"; font-weight: 700; src: url(/font/hind-siliguri-bengali-700-normal.woff2) format("woff2"); unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0-1CF9, U+200C-200D, U+20B9, U+25CC, U+A8F1; }
+@font-face { font-family: "Hind Siliguri"; font-weight: 400; src: url(/font/hind-siliguri-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122; }
+@font-face { font-family: "Hind Siliguri"; font-weight: 600; src: url(/font/hind-siliguri-latin-600-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122; }
+@font-face { font-family: "Hind Siliguri"; font-weight: 700; src: url(/font/hind-siliguri-latin-700-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122; }
+
+:root {
+  --bg: #f4f5f7; --card: #fff; --text: #1a1d23; --muted: #6b7280; --line: #e3e6eb; --field: #fff;
+  --accent: #FFB020; --accent-ink: #1a1400; --ok: #12a150; --err: #d93636; --panel: rgba(14,17,22,.86);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1116; --card: #171b22; --text: #e8ebf0; --muted: #98a2b3; --line: #2a303b; --field: #10141a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Hind Siliguri", system-ui, sans-serif; }
+header { position: sticky; top: 0; z-index: 10; background: var(--card); border-bottom: 1px solid var(--line); }
+.bar { max-width: 1120px; margin: 0 auto; padding: 0 16px; display: flex; align-items: center; gap: 24px; min-height: 60px; flex-wrap: wrap; }
+.bar h1 { font-size: 19px; margin: 0; display: flex; align-items: center; gap: 10px; }
+.bar h1 span { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 15px; }
+nav { display: flex; gap: 4px; }
+nav button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; padding: 16px 12px; cursor: pointer; border-bottom: 3px solid transparent; }
+nav button.on { color: var(--text); border-bottom-color: var(--accent); }
+main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 120px; }
+section[hidden] { display: none; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-bottom: 18px; }
+.card h2 { font-size: 18px; margin: 0 0 4px; }
+.card > p.hint { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 18px; align-items: start; }
+.sticky { position: sticky; top: 80px; }
+label.f { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: 14px; }
+label.f small { font-weight: 400; color: var(--muted); }
+input[type=text], input[type=number], textarea { font: inherit; font-weight: 400; color: var(--text); background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+textarea { min-height: 110px; resize: vertical; }
+.with-icon { display: flex; align-items: center; gap: 10px; }
+.with-icon svg { flex-shrink: 0; }
+.btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 600; }
+.btn:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.seg button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--field); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.seg button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; }
+.switch input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
+.drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop b { color: var(--text); }
+.imgbox { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; }
+.thumb { width: 120px; height: 90px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 13px;
+  background: repeating-conic-gradient(#8881 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+.thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.imgcol { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.link { font: inherit; font-size: 13px; background: none; border: 0; color: var(--err); cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.link:hover { background: color-mix(in srgb, var(--err) 10%, transparent); }
+.link[hidden] { display: none; }
+
+.files { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.files li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+.files li .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files li .s { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.files li audio { height: 32px; max-width: 220px; }
+.files .empty { color: var(--muted); border-style: dashed; justify-content: center; }
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+.thumbs figure { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
+.thumbs img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; margin-bottom: 4px; }
+.thumbs figure.final { grid-column: 1 / -1; max-width: 420px; }
+.warn { color: #b7791f; font-size: 13px; }
+.err { color: var(--err); font-size: 14px; }
+
+.namebox { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; display: none; gap: 8px; flex-direction: column; text-align: left; }
+.namebox.on { display: flex; }
+.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; display: none; }
+.progress.on { display: block; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+/* ভিডিওর ধাপ */
+.steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; }
+.steps span { font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.steps span.done { background: color-mix(in srgb, var(--ok) 14%, transparent); border-color: transparent; color: var(--ok); font-weight: 600; }
+.vhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.vhead h2 { font-family: ui-monospace, Menlo, monospace; font-size: 17px; }
+.tag { font-size: 12px; background: var(--accent); color: var(--accent-ink); border-radius: 6px; padding: 1px 8px; font-weight: 700; margin-left: 6px; font-family: "Hind Siliguri", sans-serif; }
+.claude { display: flex; gap: 10px; align-items: center; background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.claude code { flex: 1; font: 600 15px "Hind Siliguri", sans-serif; min-width: 200px; }
+pre.log { background: #0b0d11; color: #c9d1d9; border-radius: 10px; padding: 12px; font-size: 12.5px; max-height: 220px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; }
+details summary { cursor: pointer; font-weight: 600; }
+
+/* ভিডিওর উপর প্রিভিউ */
+.preview { aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; background: linear-gradient(160deg, #3a4a5e, #1d2633); container-type: inline-size; }
+.preview .face { position: absolute; left: 50%; top: 35%; width: 13cqw; height: 13cqw; margin: -6.5cqw; border-radius: 50%; background: #d9a87c; }
+.preview .body { position: absolute; left: 50%; top: 52%; width: 32cqw; height: 40cqw; margin-left: -16cqw; border-radius: 16cqw 16cqw 0 0; background: #2f6f8f; }
+.preview .logo { position: absolute; filter: drop-shadow(0 1px 4px rgba(0,0,0,.45)); }
+.preview .pbar { position: absolute; left: 1.9cqw; bottom: 1.9cqw; display: flex; border-radius: .8cqw; overflow: hidden; box-shadow: 0 .4cqw 1.5cqw rgba(0,0,0,.35); max-width: 96cqw; }
+.pbar .nm { background: var(--accent); color: #111; padding: .6cqw 1.45cqw; display: flex; flex-direction: column; justify-content: center; min-height: 6.25cqw; }
+.pbar .nm b { font-size: 2.08cqw; line-height: 1.25; white-space: nowrap; }
+.pbar .nm small { font-size: 1.25cqw; opacity: .85; white-space: nowrap; }
+.pbar .pn { background: var(--panel); color: #fff; padding: .6cqw 1.56cqw; display: flex; align-items: center; gap: .94cqw; min-height: 6.25cqw; }
+.pbar .pn .ic { width: 3.3cqw; height: 3.3cqw; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
+.pbar .pn small { display: block; font-size: 1.25cqw; color: #a9b4c4; white-space: nowrap; }
+.pbar .pn b { display: block; font-size: 2.5cqw; line-height: 1.2; white-space: nowrap; }
+.pbar .soc { display: flex; gap: 1.8cqw; align-items: center; }
+.pbar .soc div { display: flex; align-items: center; gap: .6cqw; font-size: 1.77cqw; font-weight: 600; white-space: nowrap; }
+.pbar .soc i { width: 2.7cqw; height: 2.7cqw; background: #fff; border-radius: .6cqw; display: grid; place-items: center; }
+.pbar .qr { background: #fff; padding: .4cqw; width: 6.25cqw; height: 6.25cqw; }
+.pbar .qr img { width: 100%; height: 100%; object-fit: contain; }
+.ptabs { display: flex; gap: 6px; margin-top: 10px; }
+
+.savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); z-index: 9; transform: translateY(100%); transition: transform .2s; }
+.savebar.on { transform: none; }
+.savebar .bar { justify-content: flex-end; min-height: 64px; gap: 14px; }
+.toast { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 18px; border-radius: 10px; z-index: 20; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.on { opacity: 1; }
+.toast.bad { background: var(--err); }
+
+@media (max-width: 860px) {
+  .cols, .grid2 { grid-template-columns: 1fr; }
+  .sticky { position: static; }
+  .bar { gap: 8px; }
+  nav button { padding: 10px 8px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1><span>▶</span>রিসোর্স ম্যানেজার</h1>
+    <nav>
+      <button data-tab="brand" class="on">ব্র্যান্ড</button>
+      <button data-tab="library">লাইব্রেরি</button>
+      <button data-tab="videos">ভিডিও</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ===== ব্র্যান্ড ===== -->
+  <section id="tab-brand">
+    <div class="cols">
+      <div>
+        <div class="card">
+          <h2>পরিচয়</h2>
+          <p class="hint">যোগাযোগ বারে দেখাবে। যে ঘর ফাঁকা রাখবেন, সেটা ভিডিওতে আসবে না।</p>
+          <div class="grid2">
+            <label class="f">নাম <small>দোকান বা চ্যানেলের নাম</small><input type="text" id="name" placeholder="মাশাল্লাহ লেজার কাটিং"></label>
+            <label class="f">ঠিকানা <small>ছোট রাখুন</small><input type="text" id="address" placeholder="মিরপুর, ঢাকা"></label>
+            <label class="f">ফোন নম্বর<input type="text" id="phone" placeholder="01715-089091" inputmode="tel"></label>
+            <label class="f">ফোনের উপরের লেখা<input type="text" id="phoneLabel" placeholder="মেশিন কিনতে কল করুন"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>সোশ্যাল</h2>
+          <p class="hint">ফোন থাকলে বারের প্রথম অর্ধেক ফোন, পরের অর্ধেক এগুলো দেখায়।</p>
+          <div class="grid2" id="socials"></div>
+        </div>
+
+        <div class="card">
+          <h2>লোগো আর QR</h2>
+          <p class="hint">স্বচ্ছ ব্যাকগ্রাউন্ডের PNG সবচেয়ে ভালো। নতুন ছবি দিলে পুরনোটা বদলে যায় (পুরনোটা <code>brand/.removed/</code>-এ থাকে, মোছে না)।</p>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="imgbox"><div class="imgcol"><div class="thumb" id="logoThumb">নেই</div><button class="link" data-remove="logo" hidden>✕ সরাও</button></div><div class="drop" data-kind="logo"><b>লোগো</b> — টেনে আনুন বা ক্লিক করুন<input type="file" accept="image/*"></div></div>
+            <div class="imgbox"><div class="imgcol"><div class="thumb" id="qrThumb">নেই</div><button class="link" data-remove="qr" hidden>✕ সরাও</button></div><div class="drop" data-kind="qr"><b>QR কোড</b> (ঐচ্ছিক) — টেনে আনুন বা ক্লিক করুন<input type="file" accept="image/*"></div></div>
+          </div>
+          <div class="grid2" style="margin-top:18px">
+            <div class="f"><span style="font-weight:600;font-size:14px">লোগো কোন কোণে</span>
+              <div class="seg" id="logoPosition">
+                <button data-v="top-left">↖ উপরে বাঁয়ে</button><button data-v="top-right">উপরে ডানে ↗</button>
+                <button data-v="bottom-left">↙ নিচে বাঁয়ে</button><button data-v="bottom-right">নিচে ডানে ↘</button>
+              </div>
+            </div>
+            <div>
+              <label class="f">সাইজ <small id="logoSizeV"></small><input type="range" id="logoSize" min="30" max="240" step="5"></label>
+              <label class="f" style="margin-top:8px">স্বচ্ছতা <small id="logoOpacityV"></small><input type="range" id="logoOpacity" min="0.1" max="1" step="0.05"></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>যোগাযোগ বার কখন আসবে</h2>
+          <p class="hint">মোশন বা PiP শটের সময় বার আসে না, পরের ফাঁকা জায়গায় সরে যায়।</p>
+          <label class="switch"><input type="checkbox" id="barOn"> যোগাযোগ বার দেখাবে</label>
+          <div class="grid2" id="barFields" style="margin-top:14px">
+            <label class="f">প্রথমবার <small>কত সেকেন্ডে</small><input type="number" id="barStart" min="0" step="1"></label>
+            <label class="f">কতক্ষণ পরপর <small>সেকেন্ড</small><input type="number" id="barEvery" min="4" step="1"></label>
+            <label class="f">কতক্ষণ থাকবে <small>সেকেন্ড</small><input type="number" id="barDuration" min="2" max="60" step="1"></label>
+            <label class="switch" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="barAtEnd"> ভিডিওর শেষেও একবার</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sticky">
+        <div class="card">
+          <h2>প্রিভিউ</h2>
+          <p class="hint">মোটামুটি এরকম দেখাবে (১৬:৯)।</p>
+          <div class="preview" id="preview"><div class="face"></div><div class="body"></div><img class="logo" id="pLogo" alt=""><div class="pbar" id="pBar"></div></div>
+          <div class="ptabs"><button class="btn ghost" data-page="0">ফোন পাতা</button><button class="btn ghost" data-page="1">সোশ্যাল পাতা</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== লাইব্রেরি ===== -->
+  <section id="tab-library" hidden>
+    <div class="card">
+      <h2>মিউজিক</h2>
+      <p class="hint">সব ভিডিওতে ব্যবহার করা যায়। ভোকাল ছাড়া, লাইসেন্স-মুক্ত। নামে মুড লিখুন, যেমন <code>upbeat-intro.mp3</code>; Claude নাম দেখে বাছাই করে।</p>
+      <div class="drop" data-kind="library-music" data-rename><b>মিউজিক যোগ করুন</b><br>mp3, m4a, wav<input type="file" accept="audio/*" multiple></div>
+      <ul class="files" id="libMusic"></ul>
+    </div>
+    <div class="card">
+      <h2>শেয়ার্ড B-roll</h2>
+      <p class="hint">বারবার কাজে লাগে এমন ক্লিপ বা ছবি (ওয়ার্কশপ, মেশিন, দোকান)। শুধু একটা ভিডিওর জন্য হলে <b>ভিডিও</b> ট্যাবে দিন। বর্ণনামূলক নাম দিন, যেমন <code>laser-cutting-closeup.mp4</code>।</p>
+      <div class="drop" data-kind="library-broll" data-rename><b>B-roll যোগ করুন</b><br>ভিডিও বা ছবি<input type="file" accept="video/*,image/*" multiple></div>
+      <ul class="files" id="libBroll"></ul>
+    </div>
+  </section>
+
+  <!-- ===== ভিডিও ===== -->
+  <section id="tab-videos" hidden>
+    <div class="card">
+      <h2>নতুন ভিডিও</h2>
+      <p class="hint">কাঁচা ফুটেজ দিন: কাটা, কিন্তু লোগো, মিউজিক বা লেখা ছাড়া। এরপর নিজে থেকেই ট্রান্সক্রাইব শুরু হবে।</p>
+      <div class="grid2">
+        <label class="f">ভিডিওর নাম <small>ছোট ইংরেজি অক্ষর, সংখ্যা আর - (যেমন laser-machine)</small><input type="text" id="newSlug" placeholder="laser-machine" autocomplete="off"></label>
+        <div class="drop" id="newDrop"><b>ফুটেজ (A-roll)</b><br><span id="newFile">টেনে আনুন বা ক্লিক করুন</span><input type="file" accept="video/*"></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="newBtn" disabled>তৈরি করো</button><span class="err" id="newErr"></span></div>
+      <div class="progress" id="newProg"><i></i></div>
+    </div>
+    <div id="videoList"></div>
+  </section>
+</main>
+
+<div class="savebar" id="savebar"><div class="bar"><span id="saveMsg" style="color:var(--muted)">পরিবর্তন সেভ হয়নি</span><button class="btn ghost" id="resetBtn">বাতিল</button><button class="btn" id="saveBtn">সেভ করো</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const h = (tag, props = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return el;
+};
+const toast = (msg, bad = false) => {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = "toast on" + (bad ? " bad" : "");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => (t.className = "toast"), bad ? 5000 : 2200);
+};
+const size = (b) => (b > 1e9 ? (b / 1e9).toFixed(1) + " GB" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB");
+const api = async (url, opts) => {
+  const r = await fetch(url, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || "সমস্যা হয়েছে"), { status: r.status, data: j });
+  return j;
+};
+
+// ---- আইকন (ভিডিওর বারের সাথে একই) ----
+const ICONS = {
+  phone: ["#111", "M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"],
+  facebook: ["#1877F2", "M14 8h3V4h-3a5 5 0 0 0-5 5v2H7v4h2v7h4v-7h3l1-4h-4V9a1 1 0 0 1 1-1z"],
+  whatsapp: ["#25D366", "M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.3.3c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.2z"],
+  youtube: ["#FF0033", "M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"],
+  web: ["#111", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15.6 15.6 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4zM4.3 14a8 8 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h3c.3 1.3.8 2.5 1.4 3.6A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.3-3.6C8.9 5.5 8.4 6.7 8.1 8zM12 20c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h3a8 8 0 0 1-4.4 3.6zm1.7-5.6a16.5 16.5 0 0 0 0-4h3.4a8 8 0 0 1 0 4z"],
+};
+const icon = (type, px, color) => {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24");
+  s.style.width = s.style.height = px;
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", ICONS[type][1]);
+  p.setAttribute("fill", color || ICONS[type][0]);
+  s.append(p);
+  return s;
+};
+const SOCIAL = [
+  ["facebook", "Facebook", "fb.com/yourpage"],
+  ["whatsapp", "WhatsApp", "01XXX-XXXXXX"],
+  ["youtube", "YouTube", "youtube.com/@channel"],
+  ["web", "ওয়েবসাইট", "yoursite.com"],
+];
+
+// ---- ট্যাব ----
+const showTab = (name) => {
+  $$("nav button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  $$("main > section").forEach((s) => (s.hidden = s.id !== "tab-" + name));
+  history.replaceState(null, "", "#" + name);
+};
+$$("nav button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+const fromHash = () => showTab(["library", "videos"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "brand");
+window.addEventListener("hashchange", fromHash);
+fromHash();
+
+// ===================== ব্র্যান্ড =====================
+let S = null; // সার্ভারের অবস্থা
+let page = 0;
+for (const [type, label, ph] of SOCIAL)
+  $("#socials").append(h("label", { class: "f" }, label, h("div", { class: "with-icon" }, icon(type, "22px", type === "web" ? "currentColor" : undefined), h("input", { type: "text", id: "s-" + type, placeholder: ph }))));
+
+const form = () => ({
+  name: $("#name").value, address: $("#address").value, phone: $("#phone").value, phoneLabel: $("#phoneLabel").value,
+  social: Object.fromEntries(SOCIAL.map(([t]) => [t, $("#s-" + t).value])),
+  logoPosition: $("#logoPosition .on")?.dataset.v || "top-right",
+  logoSize: Number($("#logoSize").value), logoOpacity: Number($("#logoOpacity").value),
+  contactBar: $("#barOn").checked ? { start: Number($("#barStart").value), every: Number($("#barEvery").value), duration: Number($("#barDuration").value), atEnd: $("#barAtEnd").checked } : false,
+});
+const fillBrand = (b) => {
+  for (const k of ["name", "address", "phone", "phoneLabel"]) $("#" + k).value = b[k] || "";
+  for (const [t] of SOCIAL) $("#s-" + t).value = (b.social || []).find((s) => s.type === t)?.text || "";
+  setSeg(b.logoPosition || "top-right");
+  $("#logoSize").value = b.logoSize ?? 80;
+  $("#logoOpacity").value = b.logoOpacity ?? 0.9;
+  const bar = b.contactBar === false ? null : { start: 4, every: 30, duration: 7, atEnd: true, ...(b.contactBar || {}) };
+  $("#barOn").checked = Boolean(bar);
+  const d = bar || { start: 4, every: 30, duration: 7, atEnd: true };
+  $("#barStart").value = d.start; $("#barEvery").value = d.every; $("#barDuration").value = d.duration; $("#barAtEnd").checked = d.atEnd !== false;
+  saved = JSON.stringify(form());
+  refresh();
+};
+const setSeg = (v) => $$("#logoPosition button").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
+$$("#logoPosition button").forEach((b) => b.addEventListener("click", () => { setSeg(b.dataset.v); refresh(); }));
+
+let saved = "";
+const refresh = () => {
+  const f = form();
+  $("#logoSizeV").textContent = f.logoSize + "px";
+  $("#logoOpacityV").textContent = Math.round(f.logoOpacity * 100) + "%";
+  $("#barFields").style.opacity = f.contactBar ? 1 : 0.4;
+  $$("#barFields input").forEach((i) => (i.disabled = !f.contactBar));
+  const dirty = JSON.stringify(f) !== saved;
+  $("#savebar").classList.toggle("on", dirty);
+  drawPreview(f);
+};
+$("#tab-brand").addEventListener("input", refresh);
+
+// প্রিভিউ: ভিডিওর ContactBar-এর মাপ (1080p) cqw-তে
+const drawPreview = (f) => {
+  const logo = $("#pLogo");
+  if (S?.logo) {
+    logo.src = S.logo.url + "?v=" + S.logo.size;
+    logo.style.display = "";
+    const m = (40 / 1920) * 100 + "cqw";
+    const [v, hz] = f.logoPosition.split("-");
+    logo.style.top = logo.style.bottom = logo.style.left = logo.style.right = "";
+    logo.style[v] = m; logo.style[hz] = m;
+    logo.style.height = (f.logoSize / 1920) * 100 + "cqw";
+    logo.style.opacity = f.logoOpacity;
+  } else logo.style.display = "none";
+
+  const bar = $("#pBar");
+  bar.replaceChildren();
+  const socials = SOCIAL.filter(([t]) => f.social[t].trim());
+  const hasAny = f.name || f.address || f.phone || socials.length || S?.qr;
+  bar.style.display = f.contactBar && hasAny ? "" : "none";
+  if (f.name || f.address) bar.append(h("div", { class: "nm" }, f.name && h("b", {}, f.name), f.address && h("small", {}, f.address)));
+  const showSocial = socials.length && (page === 1 || !f.phone);
+  if (f.phone || socials.length) {
+    const pn = h("div", { class: "pn" });
+    if (!showSocial) {
+      const ic = h("div", { class: "ic" }, icon("phone", "1.9cqw"));
+      pn.append(ic, h("div", {}, f.phoneLabel && h("small", {}, f.phoneLabel), h("b", {}, f.phone)));
+    } else pn.append(h("div", { class: "soc" }, socials.map(([t]) => h("div", {}, h("i", {}, icon(t, "1.9cqw")), f.social[t]))));
+    bar.append(pn);
+  }
+  if (S?.qr) bar.append(h("div", { class: "qr" }, h("img", { src: S.qr.url + "?v=" + S.qr.size, alt: "" })));
+};
+$$(".ptabs button").forEach((b) => b.addEventListener("click", () => { page = Number(b.dataset.page); refresh(); }));
+
+$("#saveBtn").addEventListener("click", async () => {
+  try {
+    S = await api("/api/brand", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form()) });
+    fillBrand(S.brand);
+    toast("✓ সেভ হয়েছে → media/library/brand/brand.json");
+  } catch (e) { toast(e.message, true); }
+});
+$("#resetBtn").addEventListener("click", () => fillBrand(S.brand));
+window.addEventListener("beforeunload", (e) => { if ($("#savebar").classList.contains("on")) e.preventDefault(); });
+
+// ===================== আপলোড =====================
+// XHR — আপলোডের অগ্রগতি দেখানোর জন্য
+const upload = (url, file, prog) =>
+  new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", url);
+    x.upload.onprogress = (e) => prog && e.lengthComputable && prog(e.loaded / e.total);
+    x.onload = () => {
+      let j = {};
+      try { j = JSON.parse(x.responseText); } catch {}
+      x.status < 300 ? resolve(j) : reject(Object.assign(new Error(j.error || "আপলোড হয়নি"), { status: x.status }));
+    };
+    x.onerror = () => reject(new Error("আপলোড হয়নি — সার্ভার চালু আছে তো?"));
+    x.send(file);
+  });
+
+const VAGUE = /^(img|dsc|dscn|vid|mov|pxl|gopr|clip|video|untitled|final|new|screen|recording)[-_ ]?\d*$/i;
+const tidy = (n) => n.normalize("NFC").trim().replace(/\s+/g, "-").replace(/[^\p{L}\p{M}\p{N}._-]+/gu, "-").replace(/-+/g, "-");
+
+// একটা drop-জোন: data-kind = কোন ফোল্ডার; data-rename = আপলোডের আগে নাম দেখাও
+const wireDrop = (drop, slug = "") => {
+  const kind = drop.dataset.kind;
+  const input = $("input", drop);
+  const rename = drop.hasAttribute("data-rename");
+  const box = h("div", { class: "namebox" });
+  const prog = h("div", { class: "progress" }, h("i"));
+  drop.after(box, prog);
+  const setProg = (p) => { prog.classList.toggle("on", p !== null); $("i", prog).style.width = (p || 0) * 100 + "%"; };
+
+  const send = async (file, name, overwrite = false) => {
+    const q = new URLSearchParams({ kind, slug, name, ...(overwrite ? { overwrite: "1" } : {}) });
+    setProg(0);
+    try {
+      const r = await upload("/api/upload?" + q, file, setProg);
+      setProg(null);
+      toast("✓ রাখা হয়েছে → " + r.saved);
+      S = r.state;
+      render();
+    } catch (e) {
+      setProg(null);
+      if (e.status === 409 && confirm(`"${name}" নামে আগে থেকেই আছে। নতুনটা দিয়ে বদলাবেন?`)) return send(file, name, true);
+      if (e.status !== 409) toast(e.message, true);
+    }
+  };
+
+  // একাধিক ফাইল: একটার পর একটা নাম জিজ্ঞেস
+  const queue = async (files) => {
+    for (const file of files) {
+      if (!rename) { await send(file, file.name); continue; }
+      const ext = (file.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+      const base = tidy(file.name.slice(0, file.name.length - ext.length));
+      await new Promise((done) => {
+        const inp = h("input", { type: "text", value: base });
+        const warn = h("div", { class: "warn" });
+        const check = () => (warn.textContent = VAGUE.test(inp.value.trim()) || inp.value.trim().length < 4 ? "⚠ নাম দেখে বোঝা যায় না কী আছে — Claude ঠিক জায়গায় বসাতে পারবে না। কী দেখা যায় সেটা লিখুন।" : "");
+        inp.addEventListener("input", check);
+        check();
+        const go = h("button", { class: "btn", onclick: async () => { box.classList.remove("on"); await send(file, tidy(inp.value) + ext); done(); } }, "আপলোড");
+        const skip = h("button", { class: "btn ghost", onclick: () => { box.classList.remove("on"); done(); } }, "বাদ দিন");
+        inp.addEventListener("keydown", (e) => e.key === "Enter" && go.click());
+        box.replaceChildren(h("label", { class: "f" }, `নাম (${size(file.size)})`, h("div", { class: "row" }, h("div", { style: "flex:1;display:flex;align-items:center;gap:6px" }, inp, ext), go, skip)), warn);
+        box.classList.add("on");
+        inp.focus();
+        inp.select();
+      });
+    }
+    input.value = "";
+  };
+  input.addEventListener("change", () => queue([...input.files]));
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); queue([...e.dataTransfer.files]); });
+};
+$$("#tab-brand .drop, #tab-library .drop").forEach((d) => wireDrop(d));
+
+// লোগো/QR সরানো (media/library/brand/.removed/-এ যায়, মুছে যায় না)
+$$("[data-remove]").forEach((b) =>
+  b.addEventListener("click", async () => {
+    const kind = b.dataset.remove;
+    const label = kind === "logo" ? "লোগো" : "QR";
+    if (!confirm(`${label} সরাবেন? পরের ভিডিওগুলোতে আর দেখাবে না।\n(ফাইলটা media/library/brand/.removed/-এ থাকবে)`)) return;
+    try {
+      S = await api("/api/remove?kind=" + kind, { method: "POST" });
+      render();
+      toast(`✓ ${label} সরানো হয়েছে`);
+    } catch (e) { toast(e.message, true); }
+  }),
+);
+
+const fileList = (ul, files, emptyText) => {
+  ul.replaceChildren();
+  if (!files.length) return ul.append(h("li", { class: "empty" }, emptyText));
+  for (const f of files) {
+    const media = /\.(mp3|m4a|wav|aac|ogg)$/i.test(f.name) ? h("audio", { controls: true, preload: "none", src: f.url }) : null;
+    ul.append(h("li", {}, h("span", { class: "n", title: f.name }, f.name), media, h("span", { class: "s" }, size(f.size))));
+  }
+};
+
+// ===================== ভিডিও =====================
+const STEPS = [["aroll", "ফুটেজ"], ["transcribed", "ট্রান্সক্রাইব"], ["transcript", "বানান ঠিক"], ["captions", "ক্যাপশন"], ["edit", "শট প্ল্যান"], ["timeline", "যাচাই"], ["rendered", "রেন্ডার"]];
+// পরের কাজ: Claude-কে কী বলবেন
+const nextStep = (v) => {
+  const s = v.steps;
+  if (v.job && !v.job.done) return null;
+  if (v.job && !v.job.ok) return [`${v.slug}-এর ট্রান্সক্রিপশন ব্যর্থ হয়েছে, দেখো কী সমস্যা`, "Claude-কে বলুন"];
+  if (!s.aroll) return ["⚠ ফুটেজ (aroll) এই ভিডিওর ফোল্ডারে নেই", "ফাইলটা সরানো হয়েছে — উপরে নতুন ভিডিও হিসেবে আবার দিন"];
+  if (!s.transcribed && !s.transcript) return [`npm run transcribe -- ${v.slug}`, "টার্মিনালে চালান"];
+  if (!s.timeline) return [`${v.slug} প্রসেস করো`, "Claude-কে বলুন"];
+  if (!s.rendered) return [`npm run studio -- ${v.slug}`, "দেখে নিন, তারপর Claude-কে বলুন \"রেন্ডার করো\""];
+  return [`${v.slug}-এর edit plan বদলাও: …`, "কিছু বদলাতে চাইলে Claude-কে বলুন"];
+};
+const fmt = (sec) => (sec >= 60 ? `${Math.floor(sec / 60)} মি. ${Math.round(sec % 60)} সে.` : `${Math.round(sec)} সে.`);
+const openCards = new Set();
+
+const videoCard = (v) => {
+  const card = h("div", { class: "card" });
+  const head = h("div", { class: "vhead" },
+    h("h2", {}, v.slug, v.slug === S.current && h("span", { class: "tag" }, "এখনকার")),
+    h("span", { style: "color:var(--muted);font-size:14px" }, v.durationSec ? `${fmt(v.durationSec)} · ${v.size}` : ""));
+  const steps = h("div", { class: "steps" }, STEPS.map(([k, label]) => h("span", { class: v.steps[k] ? "done" : "" }, (v.steps[k] ? "✓ " : "") + label)));
+  card.append(head, steps);
+
+  if (v.job && !v.job.done) {
+    card.append(h("div", { class: "claude" }, h("code", {}, "⏳ ট্রান্সক্রাইব হচ্ছে… প্রথমবার মডেল নামতে কিছুক্ষণ লাগে।")));
+    card.append(h("pre", { class: "log" }, v.job.log.trim().split("\n").slice(-12).join("\n") || "শুরু হচ্ছে…"));
+    return card;
+  }
+  if (v.job && !v.job.ok) card.append(h("pre", { class: "log" }, v.job.log.trim().split("\n").slice(-15).join("\n")));
+
+  const ns = nextStep(v);
+  if (ns) {
+    const copy = h("button", { class: "btn", onclick: async () => { await navigator.clipboard.writeText(ns[0]); toast("✓ কপি হয়েছে"); } }, "কপি");
+    card.append(h("div", { class: "claude" }, h("span", { style: "font-size:13px;color:var(--muted);width:100%" }, ns[1]), h("code", {}, ns[0]), copy));
+  }
+  if (!v.durationSec) return card;
+
+  // নোট: Claude এটা পড়ে শট প্ল্যান/বানান ঠিক করার সময়
+  const notes = h("textarea", { placeholder: "যেমন:\n- ভিডিওটা 6000W লেজার কাটিং মেশিন নিয়ে\n- মেশিনের নাম: ATI Laser, দাম ৳১২,৫০,০০০\n- শেষে ফোন নম্বর বড় করে দেখাও\n- 0:45 থেকে মেশিনের B-roll বেশি ব্যবহার করো" });
+  notes.value = v.notes;
+  const saveNotes = h("button", { class: "btn ghost", onclick: async () => {
+    try { S = await api("/api/notes?slug=" + v.slug, { method: "POST", body: notes.value }); toast("✓ নোট সেভ হয়েছে → notes.md"); }
+    catch (e) { toast(e.message, true); }
+  } }, "নোট সেভ করো");
+
+  const brollDrop = h("div", { class: "drop", "data-kind": "video-broll", "data-rename": true }, h("b", {}, "এই ভিডিওর B-roll"), h("br"), "ভিডিও বা ছবি", h("input", { type: "file", accept: "video/*,image/*", multiple: true }));
+  const musicDrop = h("div", { class: "drop", "data-kind": "video-music", "data-rename": true }, h("b", {}, "এই ভিডিওর মিউজিক"), h("br"), "ঐচ্ছিক", h("input", { type: "file", accept: "audio/*", multiple: true }));
+  const bList = h("ul", { class: "files" });
+  const mList = h("ul", { class: "files" });
+  fileList(bList, v.broll, "এখনো নেই — লাইব্রেরির B-roll-ও ব্যবহার হবে");
+  fileList(mList, v.music, "নেই — লাইব্রেরির মিউজিক ব্যবহার হবে");
+
+  const det = h("details", { open: openCards.has(v.slug) || null, ontoggle: (e) => (e.target.open ? openCards.add(v.slug) : openCards.delete(v.slug)) },
+    h("summary", {}, "রিসোর্স আর নোট"),
+    h("div", { class: "grid2", style: "margin-top:14px" },
+      h("div", {}, brollDrop, bList),
+      h("div", {}, musicDrop, mList)),
+    h("label", { class: "f", style: "margin-top:18px" }, "Claude-এর জন্য নোট", h("small", {}, "বিষয়, পণ্যের নাম, দাম, কোথায় কী দেখাবে — Claude বানান ঠিক আর শট প্ল্যানের সময় পড়বে"), notes),
+    h("div", { class: "row", style: "margin-top:10px" }, saveNotes,
+      v.slug !== S.current && h("button", { class: "btn ghost", onclick: async () => { S = await api("/api/current?slug=" + v.slug, { method: "POST" }); render(); } }, "এখনকার ভিডিও করো")));
+  // থাম্বনেইল: npm run thumbs দিয়ে বের করা ফ্রেম + বানানো থাম্বনেইল
+  const thumbCmd = `npm run thumbs -- ${v.slug}`;
+  const thumbs = h("details", {}, h("summary", {}, `থাম্বনেইল${v.thumbs.length ? ` (${v.thumbs.length})` : ""}`),
+    v.thumbs.length
+      ? h("div", { class: "thumbs" }, v.thumbs.map((t) => h("figure", { class: t.name === "thumbnail.jpg" ? "final" : "" },
+          h("a", { href: t.url, target: "_blank" }, h("img", { src: t.url + "?v=" + t.size, alt: t.name, loading: "lazy" })),
+          t.name === "thumbnail.jpg" ? "✓ তৈরি থাম্বনেইল (output/thumbnail.jpg)" : t.name.replace(/^cand-0?(\d+)\.jpg$/, "ফ্রেম $1"))))
+      : h("p", { class: "hint" }, "এখনো নেই। ভিডিওর সবচেয়ে পরিষ্কার ৮টা ফ্রেম বের করতে টার্মিনালে: ", h("code", {}, thumbCmd)),
+    h("p", { class: "hint", style: "margin-top:10px" }, "পছন্দের ফ্রেম বেছে Claude-কে বলুন: ", h("code", {}, `${v.slug}-এর থাম্বনেইল বানাও, ফ্রেম ৩, লেখা: …`)));
+  card.append(det, thumbs);
+  wireDrop(brollDrop, v.slug);
+  wireDrop(musicDrop, v.slug);
+  return card;
+};
+
+// নতুন ভিডিও
+let newFile = null;
+const newDrop = $("#newDrop");
+const pickNew = (f) => { newFile = f; $("#newFile").textContent = f ? `${f.name} (${size(f.size)})` : "টেনে আনুন বা ক্লিক করুন"; checkNew(); };
+const checkNew = () => {
+  const slug = $("#newSlug").value.trim();
+  const ok = /^[a-z0-9][a-z0-9-]{0,60}$/.test(slug);
+  const taken = S?.videos.some((v) => v.slug === slug);
+  $("#newErr").textContent = slug && !ok ? "শুধু ছোট ইংরেজি অক্ষর, সংখ্যা আর -" : taken ? "এই নামে ভিডিও আছে" : "";
+  $("#newBtn").disabled = !(ok && !taken && newFile);
+};
+$("#newSlug").addEventListener("input", (e) => { e.target.value = e.target.value.toLowerCase().replace(/\s+/g, "-"); checkNew(); });
+$("input", newDrop).addEventListener("change", (e) => pickNew(e.target.files[0]));
+newDrop.addEventListener("dragover", (e) => { e.preventDefault(); newDrop.classList.add("over"); });
+newDrop.addEventListener("dragleave", () => newDrop.classList.remove("over"));
+newDrop.addEventListener("drop", (e) => { e.preventDefault(); newDrop.classList.remove("over"); pickNew(e.dataTransfer.files[0]); });
+$("#newBtn").addEventListener("click", async () => {
+  const slug = $("#newSlug").value.trim();
+  const prog = $("#newProg");
+  $("#newBtn").disabled = true;
+  prog.classList.add("on");
+  try {
+    S = await upload(`/api/new?slug=${slug}&name=${encodeURIComponent(newFile.name)}`, newFile, (p) => ($("i", prog).style.width = p * 100 + "%"));
+    toast("✓ ফুটেজ রাখা হয়েছে, ট্রান্সক্রাইব শুরু");
+    $("#newSlug").value = ""; pickNew(null);
+    openCards.add(slug);
+    render();
+  } catch (e) { $("#newErr").textContent = e.message; $("#newBtn").disabled = false; }
+  prog.classList.remove("on");
+});
+
+// ===================== রেন্ডার =====================
+const thumb = (el, f) => el.replaceChildren(f ? h("img", { src: f.url + "?v=" + f.size, alt: "" }) : "নেই");
+const render = () => {
+  thumb($("#logoThumb"), S.logo);
+  thumb($("#qrThumb"), S.qr);
+  $('[data-remove="logo"]').hidden = !S.logo;
+  $('[data-remove="qr"]').hidden = !S.qr;
+  fileList($("#libMusic"), S.library.music, "এখনো কোনো মিউজিক নেই");
+  fileList($("#libBroll"), S.library.broll, "এখনো কোনো শেয়ার্ড B-roll নেই");
+  // খোলা নোট-বক্সে লেখার সময় তালিকা আবার আঁকি না
+  if (!document.activeElement?.closest("#videoList")) {
+    $("#videoList").replaceChildren(...(S.videos.length ? S.videos.map(videoCard) : [h("div", { class: "card" }, h("p", { class: "hint", style: "margin:0" }, "এখনো কোনো ভিডিও নেই। উপরে ফুটেজ দিয়ে শুরু করুন।"))]));
+  }
+  checkNew();
+  refresh();
+};
+
+// প্রসেস চলাকালীন প্রতি ২ সেকেন্ডে অবস্থা দেখা
+const poll = async () => {
+  if (S?.videos.some((v) => v.job && !v.job.done)) {
+    try { S = await api("/api/state"); render(); } catch {}
+  }
+  setTimeout(poll, 2000);
+};
+
+(async () => {
+  try {
+    S = await api("/api/state");
+    fillBrand(S.brand);
+    render();
+    poll();
+  } catch {
+    document.body.innerHTML = '<main><div class="card"><h2>সার্ভার চালু নেই</h2><p>টার্মিনালে চালান: <code>npm run ui</code></p></div></main>';
+  }
+})();
+</script>
+</body>
+</html>

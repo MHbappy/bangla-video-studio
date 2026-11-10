@@ -1,0 +1,82 @@
+import React from "react";
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { theme } from "../theme";
+
+export type SceneMode = "full" | "overlay";
+export type SceneProps<T> = T & { mode: SceneMode };
+
+// স্কেল: 1080p-কে ভিত্তি ধরে সব মাপ (4K-তেও ঠিক থাকে)
+export const useUnit = () => {
+  const { width, height } = useVideoConfig();
+  return height > width ? (width / 1080) * 0.9 : Math.min(width / 1920, height / 1080);
+};
+
+export const useIsVertical = () => {
+  const { width, height } = useVideoConfig();
+  return height > width;
+};
+
+export const useEnter = (delay = 0, cfg: object = theme.spring) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return spring({ frame: frame - delay, fps, config: cfg });
+};
+
+// শেষের দিকে ফেড-আউট
+export const useExit = () => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  return interpolate(frame, [durationInFrames - theme.exitFrames, durationInFrames], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+};
+
+export const FullBg: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const frame = useCurrentFrame();
+  const drift = interpolate(frame, [0, 600], [0, 30]);
+  return (
+    <AbsoluteFill
+      style={{
+        background: `radial-gradient(circle at ${30 + drift}% 20%, ${theme.color.bg2} 0%, ${theme.color.bg} 60%)`,
+        fontFamily: theme.font,
+        color: theme.color.text,
+      }}
+    >
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+// ফুটেজের উপর ডান পাশের কার্ড (BulletList, StatCard overlay মোডে)
+export const SidePanel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const u = useUnit();
+  const vertical = useIsVertical();
+  const { height } = useVideoConfig();
+  const enter = useEnter();
+  const exit = useExit();
+  return (
+    <AbsoluteFill
+      style={
+        vertical
+          ? { justifyContent: "flex-start", alignItems: "center", paddingTop: height * 0.12, fontFamily: theme.font }
+          : { justifyContent: "center", alignItems: "flex-end", padding: 70 * u, fontFamily: theme.font }
+      }
+    >
+      <div
+        style={{
+          width: vertical ? "86%" : 640 * u,
+          background: theme.color.panel,
+          borderRadius: theme.radius * u,
+          borderLeft: `${8 * u}px solid ${theme.color.accent}`,
+          padding: `${44 * u}px ${48 * u}px`,
+          color: theme.color.text,
+          opacity: enter * exit,
+          transform: vertical ? `translateY(${(1 - enter) * -80 * u}px)` : `translateX(${(1 - enter) * 120 * u}px)`,
+        }}
+      >
+        {children}
+      </div>
+    </AbsoluteFill>
+  );
+};

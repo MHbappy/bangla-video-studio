@@ -1,0 +1,20 @@
+# লেখা ফাইল সব OS-এ একই (LF) — Windows-এ clone করলেও বদলাবে না
+* text=auto eol=lf
+
+# মিডিয়া/বাইনারি — কখনো বদলানো হবে না
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.wav binary
+*.mp3 binary
+*.m4a binary
+*.aac binary
+*.ogg binary
+*.mp4 binary
+*.mov binary
+*.m4v binary
+*.webm binary
+*.mkv binary
+*.woff2 binary
+*.onnx binary

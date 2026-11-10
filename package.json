@@ -1,0 +1,39 @@
+{
+  "name": "bangla-video-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "tsx scripts/setup.ts",
+    "new": "tsx scripts/new.ts",
+    "list": "tsx scripts/list.ts",
+    "transcribe": "tsx scripts/transcribe.ts",
+    "finalize": "tsx scripts/finalize.ts",
+    "assets": "tsx scripts/assets.ts",
+    "plan": "tsx scripts/plan.ts",
+    "studio": "tsx scripts/studio.ts",
+    "render": "tsx scripts/render.ts",
+    "thumbs": "tsx scripts/thumbs.ts",
+    "demo": "tsx scripts/demo.ts",
+    "ui": "tsx scripts/ui.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@fontsource/hind-siliguri": "5.3.0",
+    "@huggingface/transformers": "3.8.1",
+    "@remotion/cli": "4.0.539",
+    "@remotion/fonts": "4.0.539",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.539"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "@types/react": "19.1.12",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2"
+  }
+}

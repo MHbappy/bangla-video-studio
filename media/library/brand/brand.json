@@ -1,0 +1,16 @@
+{
+  "name": "",
+  "address": "",
+  "phone": "",
+  "phoneLabel": "",
+  "social": [
+    { "type": "facebook", "text": "" },
+    { "type": "whatsapp", "text": "" },
+    { "type": "youtube", "text": "" },
+    { "type": "web", "text": "" }
+  ],
+  "logoPosition": "top-right",
+  "logoSize": 80,
+  "logoOpacity": 0.9,
+  "contactBar": { "start": 4, "every": 30, "duration": 7, "atEnd": true }
+}

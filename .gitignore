@@ -1,0 +1,23 @@
+# নির্ভরতা ও মডেল — নতুন কম্পিউটারে: npm install, npm run setup
+node_modules
+models
+
+# প্রতিটা ভিডিওর ফুটেজ ও কাজ (বড় ফাইল) — git-এ যায় না; অন্য কম্পিউটারে নিতে ফোল্ডারটা কপি করুন
+media/videos/*
+!media/videos/.gitkeep
+media/.uploads
+media/.current
+*.part
+
+# এই কম্পিউটারের নিজস্ব সেটিং
+.env
+.claude/settings.local.json
+
+# ব্র্যান্ডের পুরনো (সরানো) লোগো/QR
+media/library/brand/.removed/
+
+# OS / এডিটর
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
