@@ -2,6 +2,7 @@
 
 পুরো সিস্টেম ধাপে ধাপে — **আপনি কী করবেন, Claude কী করবে, কোন কমান্ড চলবে।**
 কোন ফাইল কোন ফোল্ডারে থাকে: [WHERE-TO-PUT.md](WHERE-TO-PUT.md) · সব অপশন: [docs/SETTINGS.md](docs/SETTINGS.md)
+উদাহরণসহ: [পণ্যের মার্কেটিং ভিডিও](docs/MARKETING-VIDEO.md) · [টিউটোরিয়াল ভিডিও](docs/TUTORIAL-VIDEO.md)
 
 ```
 আপনি: Resolve-এ কাটা → ui-তে ফুটেজ + B-roll + নোট

@@ -58,6 +58,8 @@ npm run render -- --format shorts --from 65 --to 120   # একই এডিট 
 ## গাইড
 - **HOW-TO-USE.md** — পুরো সিস্টেম ধাপে ধাপে (প্রথমে এটা পড়ুন)
 - **WHERE-TO-PUT.md** — কোন ফাইল কোন ফোল্ডারে
+- **docs/MARKETING-VIDEO.md** — পণ্যের মার্কেটিং ভিডিও, উদাহরণসহ
+- **docs/TUTORIAL-VIDEO.md** — টিউটোরিয়াল ভিডিও, উদাহরণসহ
 - **docs/RESOURCES.md** — কী কী রিসোর্স, কোথায়, কোন মানে
 - **docs/TESTING.md** — ধাপে ধাপে টেস্ট
 - **docs/SETTINGS.md** — মান/গতি সেটিং, ব্র্যান্ড, রেন্ডার অপশন
