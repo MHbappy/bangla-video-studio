@@ -7,11 +7,14 @@ import {
   CAPTION_STYLES,
   CORNERS,
   type EditFile,
+  FITS,
+  GFX_OVERLAY,
   LAYOUTS,
   MOVES,
   NEEDS_BROLL,
   NEEDS_GFX,
   SCENES,
+  SIDE_PANEL_SCENES,
   SOCIALS,
   type Timeline,
   type TimelineShot,
@@ -54,6 +57,22 @@ const checkGrade = (g: EditFile["brollGrade"], tag: string) => {
   for (const [k, v] of Object.entries(g ?? {}))
     if (!["brightness", "contrast", "saturation"].includes(k)) errors.push(`${tag}: grade-এ অজানা "${k}" — brightness, contrast, saturation`);
     else if (!(Number(v) >= 0.5 && Number(v) <= 1.5)) errors.push(`${tag}: grade.${k} হবে 0.5 থেকে 1.5 (1 = যেমন আছে)`);
+};
+// মার্কেটিং scene-গুলোর দরকারি তথ্য আছে কিনা (না থাকলে ফাঁকা কার্ড রেন্ডার হয়)
+const words = (v: unknown) => String(v ?? "").trim().split(/\s+/).filter(Boolean).length;
+const checkGfx = (g: NonNullable<TimelineShot["gfx"]>, tag: string, overlay: boolean) => {
+  if (g.scene === "Offer") {
+    if (!String(g.price ?? "").trim()) errors.push(`${tag}: Offer-এ "price" (নতুন দাম) দিতে হবে`);
+  } else if (g.scene === "SpecTable") {
+    const rows = Array.isArray(g.rows) ? g.rows : [];
+    const ok = (r: unknown) => (Array.isArray(r) ? r.length === 2 : Boolean(r && typeof r === "object" && "label" in r && "value" in r));
+    if (!rows.length || !rows.every(ok)) errors.push(`${tag}: SpecTable-এ "rows": [{ "label": "পাওয়ার", "value": "6000W" }, …] দিতে হবে`);
+    else if (rows.length > (overlay ? 5 : 7)) warns.push(`${tag}: SpecTable-এ ${rows.length}টা সারি — ${overlay ? "ফুটেজের উপর ৫টা" : "৭টা"}র বেশি হলে পড়া কঠিন`);
+  } else if (g.scene === "Review") {
+    if (!String(g.quote ?? "").trim()) errors.push(`${tag}: Review-এ "quote" (কাস্টমারের কথা) দিতে হবে`);
+    else if (words(g.quote) > (overlay ? 18 : 30)) warns.push(`${tag}: Review-এর কথা ${words(g.quote)} শব্দ — ${overlay ? 18 : 30} শব্দের মধ্যে রাখুন`);
+    if (g.rating !== undefined && !(Number(g.rating) >= 1 && Number(g.rating) <= 5)) errors.push(`${tag}: Review-এর "rating" হবে 1 থেকে 5`);
+  }
 };
 checkGrade(edit.arollGrade, "arollGrade");
 checkGrade(edit.brollGrade, "brollGrade");
@@ -114,12 +133,14 @@ edit.shots.forEach((s, i) => {
         formatWarned.add(a.name);
         warns.push(`${tag}: ${ref.file} — ${a.warn}`);
       }
+      if (ref.fit !== undefined && !FITS.includes(ref.fit)) errors.push(`${tag}: "fit" হবে ${FITS.join(" | ")} (fit = পুরো ছবি + ঝাপসা পটভূমি, fill = কেটে ভরাট)`);
+      if (ref.focus !== undefined && !/^\d+(\.\d+)?% \d+(\.\d+)?%$/.test(String(ref.focus))) errors.push(`${tag}: "focus" হবে "x% y%" (যেমন "70% 50%" = ডান দিক)`);
       checkGrade(ref.grade, tag);
       const need = ((shot.endMs - shot.startMs) / 1000) * (ref.rate ?? 1) + (ref.from ?? 0);
       if (a.kind === "video" && a.durationSec && (ref.from ?? 0) >= a.durationSec) errors.push(`${tag}: "from" ${ref.from}s, কিন্তু ক্লিপ মাত্র ${a.durationSec.toFixed(1)}s`);
       else if (a.kind === "video" && a.durationSec && a.durationSec < need) warns.push(`${tag}: ${ref.file} ছোট (${a.durationSec.toFixed(1)}s, দরকার ${need.toFixed(1)}s) — লুপ হবে`);
       if (a.kind === "image" && a.width && a.width < 1600) warns.push(`${tag}: ছবি ${a.width}px চওড়া — জুমে ফেটে যেতে পারে`);
-      shot.broll = { ...ref, grade: ref.grade ?? edit.brollGrade, path: a.path, kind: a.kind, durationSec: a.durationSec };
+      shot.broll = { ...ref, grade: ref.grade ?? edit.brollGrade, path: a.path, kind: a.kind, durationSec: a.durationSec, aspect: a.width && a.height ? Math.round((a.width / a.height) * 1000) / 1000 : undefined };
     }
   } else if (s.broll) warns.push(`${tag}: এই লেআউটে broll লাগে না — বাদ`);
 
@@ -127,6 +148,20 @@ edit.shots.forEach((s, i) => {
     if (!s.gfx?.scene) errors.push(`${tag}: "gfx": { "scene": ... } দিতে হবে`);
     else if (!SCENES.includes(s.gfx.scene)) errors.push(`${tag}: অজানা scene "${s.gfx.scene}" — ${SCENES.join(", ")}`);
     else shot.gfx = s.gfx;
+  } else if (s.gfx && NEEDS_BROLL.includes(s.layout)) {
+    // B-roll / স্ক্রিন রেকর্ডিংয়ের উপর গ্রাফিক্স (ঐচ্ছিক): দাম, ফিচারের নাম, "এখানে চাপুন"
+    if (!s.gfx.scene || !SCENES.includes(s.gfx.scene)) errors.push(`${tag}: অজানা scene "${s.gfx.scene}" — ${SCENES.join(", ")}`);
+    else {
+      shot.gfx = s.gfx;
+      if (s.layout === "split" && SIDE_PANEL_SCENES.includes(s.gfx.scene))
+        warns.push(`${tag}: split-এ ${s.gfx.scene} কার্ড ডান পাশের B-roll ঢেকে দেয় — "broll" বা "aroll+gfx" ভালো`);
+      // তীর একটা নির্দিষ্ট জায়গা দেখায় — ফুটেজ নড়লে সরে যায়
+      if (s.gfx.scene === "Callout" && shot.broll) {
+        const given = typeof s.broll === "object" ? s.broll.move : undefined;
+        if (!given) shot.broll.move = "none";
+        else if (given !== "none") warns.push(`${tag}: Callout-এর সাথে move "${given}" — ফুটেজ নড়লে তীর ভুল জায়গায় যাবে ("move": "none" দিন)`);
+      }
+    }
   } else if (s.gfx) warns.push(`${tag}: এই লেআউটে gfx লাগে না — বাদ`);
 
   if (AROLL_FULL.includes(s.layout)) {
@@ -134,9 +169,11 @@ edit.shots.forEach((s, i) => {
     if (s.zoom) shot.zoom = Math.min(1.3, Math.max(1, s.zoom));
   } else if (s.punch || s.zoom) warns.push(`${tag}: punch/zoom শুধু aroll / aroll+gfx-এ কাজ করে`);
 
+  if (shot.gfx) checkGfx(shot.gfx, tag, GFX_OVERLAY.includes(s.layout));
   const dur = (shot.endMs - shot.startMs) / 1000;
   if (dur < 1) warns.push(`${tag}: মাত্র ${dur.toFixed(1)}s — চোখে ঝাঁকুনি লাগতে পারে`);
   if (["motion", "motion+aroll"].includes(s.layout) && dur < 2.5) warns.push(`${tag}: মোশন ${dur.toFixed(1)}s — পড়ার সময় কম`);
+  if (shot.gfx && GFX_OVERLAY.includes(s.layout) && dur < 2) warns.push(`${tag}: ${shot.gfx.scene} মাত্র ${dur.toFixed(1)}s — পড়ার সময় কম`);
   shots.push(shot);
   start = shot.endMs;
 });
@@ -317,11 +354,11 @@ if (chapters.length) {
 console.log("\n  #   শুরু    শেষ   লেআউট          বিষয়বস্তু");
 for (const s of shots)
   console.log(
-    `${String(s.index).padStart(3)} ${sec(s.startMs).padStart(6)} ${sec(s.endMs).padStart(6)}   ${s.layout.padEnd(13)}  ${s.broll?.file ?? (s.gfx ? String(s.gfx.scene) : "")}${s.punch > 1 ? `  [punch ${s.punch}]` : ""}${s.zoom ? `  [zoom ${s.zoom}]` : ""}`,
+    `${String(s.index).padStart(3)} ${sec(s.startMs).padStart(6)} ${sec(s.endMs).padStart(6)}   ${s.layout.padEnd(13)}  ${s.broll?.file ?? (s.gfx ? String(s.gfx.scene) : "")}${s.broll && s.gfx ? ` + ${s.gfx.scene}` : ""}${s.punch > 1 ? `  [punch ${s.punch}]` : ""}${s.zoom ? `  [zoom ${s.zoom}]` : ""}`,
   );
 if (brand)
   console.log(
     `\n  ব্র্যান্ড: ${brand.logo ? `লোগো (${brand.logo.position})` : "লোগো নেই"} · যোগাযোগ বার ${brand.bars.length}বার${brand.bars.length ? ` (${brand.bars.map((x) => `${sec(x.startMs)}s`).join(", ")})` : ""}`,
   );
 console.log(`\n✓ ${shots.length}টা শট → timeline.json${chapters.length ? " · output/chapters.txt" : ""}`);
-console.log(`প্রিভিউ: npm run studio   রেন্ডার: npm run render  (Shorts: --format shorts --from 12 --to 58)`);
+console.log(`প্রিভিউ: npm run studio   এক শটের ছবি: npm run frame -- ${slug} --shot N   রেন্ডার: npm run render  (Shorts: --format shorts --from 12 --to 58)`);

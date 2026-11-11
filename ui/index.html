@@ -30,7 +30,7 @@ nav { display: flex; gap: 4px; }
 nav button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; padding: 16px 12px; cursor: pointer; border-bottom: 3px solid transparent; }
 nav button.on { color: var(--text); border-bottom-color: var(--accent); }
 main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 120px; }
-section[hidden] { display: none; }
+[hidden] { display: none !important; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-bottom: 18px; }
 .card h2 { font-size: 18px; margin: 0 0 4px; }
 .card > p.hint { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
@@ -74,6 +74,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .files li .s { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .files li audio { height: 32px; max-width: 220px; }
 .files .empty { color: var(--muted); border-style: dashed; justify-content: center; }
+.files li a.n { color: inherit; text-decoration: none; }
+.files li a.n:hover { text-decoration: underline; }
+.files li .mini { width: 44px; height: 30px; object-fit: cover; border-radius: 5px; border: 1px solid var(--line); flex-shrink: 0; }
+.files li .link { flex-shrink: 0; }
+.notice { border: 1px solid color-mix(in srgb, var(--err) 35%, transparent); background: color-mix(in srgb, var(--err) 7%, transparent); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; }
+.notice .drop { margin-top: 10px; background: var(--card); }
+.notestate { font-size: 13px; color: var(--muted); }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
 .thumbs figure { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
 .thumbs img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; margin-bottom: 4px; }
@@ -395,7 +402,9 @@ $("#saveBtn").addEventListener("click", async () => {
   } catch (e) { toast(e.message, true); }
 });
 $("#resetBtn").addEventListener("click", () => fillBrand(S.brand));
-window.addEventListener("beforeunload", (e) => { if ($("#savebar").classList.contains("on")) e.preventDefault(); });
+// সেভ-না-করা ব্র্যান্ড/নোট বা চলমান আপলোড থাকলে পেজ বন্ধের আগে সতর্ক করি
+let uploading = 0;
+window.addEventListener("beforeunload", (e) => { if ($("#savebar").classList.contains("on") || uploading || [...cards.values()].some((c) => c.dirty())) e.preventDefault(); });
 
 // ===================== আপলোড =====================
 // XHR — আপলোডের অগ্রগতি দেখানোর জন্য
@@ -410,11 +419,29 @@ const upload = (url, file, prog) =>
       x.status < 300 ? resolve(j) : reject(Object.assign(new Error(j.error || "আপলোড হয়নি"), { status: x.status }));
     };
     x.onerror = () => reject(new Error("আপলোড হয়নি — সার্ভার চালু আছে তো?"));
+    uploading++;
+    x.onloadend = () => uploading--;
     x.send(file);
   });
 
+// কোন জায়গায় কোন ধরনের ফাইল (সার্ভারের সাথে একই) — ভুল ফাইল পুরোটা আপলোড হওয়ার আগেই ধরি
+// photo = B-roll-এর ছবি (SVG নয় — সেটা শুধু লোগো/QR-এ চলে)
+const EXT = { image: /\.(png|jpe?g|webp|svg)$/i, photo: /\.(png|jpe?g|webp)$/i, video: /\.(mp4|mov|m4v|webm|mkv)$/i, audio: /\.(mp3|m4a|wav|aac|ogg)$/i };
+const EXT_TEXT = { image: "png, jpg, webp, svg", photo: "png, jpg, webp", video: "mp4, mov, m4v, webm, mkv", audio: "mp3, m4a, wav, aac, ogg" };
+const ACCEPT = { logo: ["image"], qr: ["image"], "library-music": ["audio"], "video-music": ["audio"], "library-broll": ["video", "photo"], "video-broll": ["video", "photo"], "video-aroll": ["video"] };
+const badType = (kind, name) => {
+  if (ACCEPT[kind].some((t) => EXT[t].test(name))) return "";
+  if (/\.hei[cf]$/i.test(name)) return `"${name}" — iPhone-এর HEIC ছবি চলে না, JPG বা PNG করে দিন`;
+  return `"${name}" নেওয়া যায় না — দিন: ${ACCEPT[kind].map((t) => EXT_TEXT[t]).join(", ")}`;
+};
+// এই জায়গায় এখন কী কী আছে (একই নাম আগেই ধরার জন্য)
+const existing = (kind, slug) => {
+  const v = S?.videos.find((x) => x.slug === slug);
+  return (kind === "library-music" ? S?.library.music : kind === "library-broll" ? S?.library.broll : kind === "video-broll" ? v?.broll : kind === "video-music" ? v?.music : null) || [];
+};
+
 const VAGUE = /^(img|dsc|dscn|vid|mov|pxl|gopr|clip|video|untitled|final|new|screen|recording)[-_ ]?\d*$/i;
-const tidy = (n) => n.normalize("NFC").trim().replace(/\s+/g, "-").replace(/[^\p{L}\p{M}\p{N}._-]+/gu, "-").replace(/-+/g, "-");
+const tidy = (n) => n.normalize("NFC").trim().replace(/\s+/g, "-").replace(/[^\p{L}\p{M}\p{N}._-]+/gu, "-").replace(/-+/g, "-").replace(/^[-.]+/, "");
 
 // একটা drop-জোন: data-kind = কোন ফোল্ডার; data-rename = আপলোডের আগে নাম দেখাও
 const wireDrop = (drop, slug = "") => {
@@ -427,12 +454,17 @@ const wireDrop = (drop, slug = "") => {
   const setProg = (p) => { prog.classList.toggle("on", p !== null); $("i", prog).style.width = (p || 0) * 100 + "%"; };
 
   const send = async (file, name, overwrite = false) => {
-    const q = new URLSearchParams({ kind, slug, name, ...(overwrite ? { overwrite: "1" } : {}) });
+    // একই নাম থাকলে আপলোডের আগেই জিজ্ঞেস (বড় ফাইল পাঠিয়ে তারপর নয়)
+    if (!overwrite && existing(kind, slug).some((f) => f.name === name)) {
+      if (!confirm(`"${name}" নামে আগে থেকেই আছে। নতুনটা দিয়ে বদলাবেন?\n(পুরনোটা media/.removed/-এ থাকবে)`)) return;
+      overwrite = true;
+    }
+    const url = kind === "video-aroll" ? "/api/aroll?" + new URLSearchParams({ slug, name }) : "/api/upload?" + new URLSearchParams({ kind, slug, name, ...(overwrite ? { overwrite: "1" } : {}) });
     setProg(0);
     try {
-      const r = await upload("/api/upload?" + q, file, setProg);
+      const r = await upload(url, file, setProg);
       setProg(null);
-      toast("✓ রাখা হয়েছে → " + r.saved);
+      toast((r.warn ? "⚠ " + r.warn + " — " : "✓ ") + "রাখা হয়েছে → " + r.saved, Boolean(r.warn));
       S = r.state;
       render();
     } catch (e) {
@@ -442,28 +474,49 @@ const wireDrop = (drop, slug = "") => {
     }
   };
 
-  // একাধিক ফাইল: একটার পর একটা নাম জিজ্ঞেস
-  const queue = async (files) => {
-    for (const file of files) {
-      if (!rename) { await send(file, file.name); continue; }
+  // নাম জিজ্ঞেস: আপলোড বা বাদ — যেটাই হোক, শেষ হলে পরের ফাইল
+  const ask = (file) =>
+    new Promise((done) => {
       const ext = (file.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
-      const base = tidy(file.name.slice(0, file.name.length - ext.length));
-      await new Promise((done) => {
-        const inp = h("input", { type: "text", value: base });
-        const warn = h("div", { class: "warn" });
-        const check = () => (warn.textContent = VAGUE.test(inp.value.trim()) || inp.value.trim().length < 4 ? "⚠ নাম দেখে বোঝা যায় না কী আছে — Claude ঠিক জায়গায় বসাতে পারবে না। কী দেখা যায় সেটা লিখুন।" : "");
-        inp.addEventListener("input", check);
-        check();
-        const go = h("button", { class: "btn", onclick: async () => { box.classList.remove("on"); await send(file, tidy(inp.value) + ext); done(); } }, "আপলোড");
-        const skip = h("button", { class: "btn ghost", onclick: () => { box.classList.remove("on"); done(); } }, "বাদ দিন");
-        inp.addEventListener("keydown", (e) => e.key === "Enter" && go.click());
-        box.replaceChildren(h("label", { class: "f" }, `নাম (${size(file.size)})`, h("div", { class: "row" }, h("div", { style: "flex:1;display:flex;align-items:center;gap:6px" }, inp, ext), go, skip)), warn);
-        box.classList.add("on");
-        inp.focus();
-        inp.select();
-      });
+      const inp = h("input", { type: "text", value: tidy(file.name.slice(0, file.name.length - ext.length)) });
+      const warn = h("div", { class: "warn" });
+      const go = h("button", { class: "btn", onclick: async () => { box.classList.remove("on"); await send(file, tidy(inp.value) + ext); done(); } }, "আপলোড");
+      const skip = h("button", { class: "btn ghost", onclick: () => { box.classList.remove("on"); done(); } }, "বাদ দিন");
+      const check = () => {
+        const n = tidy(inp.value);
+        go.disabled = !n;
+        warn.textContent = !n ? "নাম দিন।"
+          : existing(kind, slug).some((f) => f.name === n + ext) ? "⚠ এই নামে আগে থেকেই আছে — আপলোড করলে পুরনোটা বদলে যাবে।"
+          : VAGUE.test(n) || n.length < 4 ? "⚠ নাম দেখে বোঝা যায় না কী আছে — Claude ঠিক জায়গায় বসাতে পারবে না। কী দেখা যায় সেটা লিখুন।" : "";
+      };
+      inp.addEventListener("input", check);
+      inp.addEventListener("keydown", (e) => e.key === "Enter" && !go.disabled && go.click());
+      check();
+      const left = pending.length ? ` · আরো ${pending.length}টা বাকি` : "";
+      box.replaceChildren(h("label", { class: "f" }, `নাম (${size(file.size)}${left})`, h("div", { class: "row" }, h("div", { style: "flex:1;display:flex;align-items:center;gap:6px" }, inp, ext), go, skip)), warn);
+      box.classList.add("on");
+      inp.focus();
+      inp.select();
+    });
+
+  // একাধিক ফাইল: একটার পর একটা; চলার মাঝে আরো ফাইল দিলে লাইনের শেষে যোগ হয়
+  const pending = [];
+  let running = false;
+  const queue = async (files) => {
+    for (const f of files) {
+      const bad = badType(kind, f.name);
+      if (bad) toast(bad, true);
+      else pending.push(f);
     }
     input.value = "";
+    if (running) return;
+    running = true;
+    while (pending.length) {
+      const file = pending.shift();
+      if (rename) await ask(file);
+      else await send(file, file.name);
+    }
+    running = false;
   };
   input.addEventListener("change", () => queue([...input.files]));
   drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
@@ -486,99 +539,173 @@ $$("[data-remove]").forEach((b) =>
   }),
 );
 
-const fileList = (ul, files, emptyText) => {
+// ফাইলের তালিকা: ছবির ছোট প্রিভিউ, ভিডিও/ছবি নতুন ট্যাবে খোলে, মিউজিক এখানেই বাজে, ✕ = সরাও
+// তালিকা না বদলালে আবার আঁকি না — নইলে চলতে থাকা মিউজিক থেমে যায়
+const fileList = (ul, files, emptyText, kind, slug = "") => {
+  const sig = JSON.stringify(files.map((f) => [f.name, f.size]));
+  if (ul.dataset.sig === sig) return;
+  ul.dataset.sig = sig;
   ul.replaceChildren();
   if (!files.length) return ul.append(h("li", { class: "empty" }, emptyText));
   for (const f of files) {
-    const media = /\.(mp3|m4a|wav|aac|ogg)$/i.test(f.name) ? h("audio", { controls: true, preload: "none", src: f.url }) : null;
-    ul.append(h("li", {}, h("span", { class: "n", title: f.name }, f.name), media, h("span", { class: "s" }, size(f.size))));
+    const audio = EXT.audio.test(f.name);
+    const del = h("button", { class: "link", title: "সরাও", onclick: async () => {
+      if (!confirm(`"${f.name}" সরাবেন?\n(মুছে যাবে না — media/.removed/-এ থাকবে)`)) return;
+      try { S = await api("/api/remove?" + new URLSearchParams({ kind, slug, name: f.name }), { method: "POST" }); render(); toast(`✓ "${f.name}" সরানো হয়েছে`); }
+      catch (e) { toast(e.message, true); }
+    } }, "✕");
+    ul.append(h("li", {},
+      EXT.image.test(f.name) && h("img", { class: "mini", src: f.url + "?v=" + f.size, alt: "", loading: "lazy" }),
+      audio ? h("span", { class: "n", title: f.name }, f.name) : h("a", { class: "n", href: f.url, target: "_blank", title: "খুলে দেখুন" }, f.name),
+      audio && h("audio", { controls: true, preload: "none", src: f.url }),
+      h("span", { class: "s" }, size(f.size)), del));
   }
 };
 
 // ===================== ভিডিও =====================
 const STEPS = [["aroll", "ফুটেজ"], ["transcribed", "ট্রান্সক্রাইব"], ["transcript", "বানান ঠিক"], ["captions", "ক্যাপশন"], ["edit", "শট প্ল্যান"], ["timeline", "যাচাই"], ["rendered", "রেন্ডার"]];
-// পরের কাজ: Claude-কে কী বলবেন
+// পরের কাজ: Claude-কে কী বলবেন (ফুটেজ না থাকলে আলাদা বক্সে আবার দেওয়ার জায়গা আসে)
 const nextStep = (v) => {
   const s = v.steps;
-  if (v.job && !v.job.done) return null;
   if (v.job && !v.job.ok) return [`${v.slug}-এর ট্রান্সক্রিপশন ব্যর্থ হয়েছে, দেখো কী সমস্যা`, "Claude-কে বলুন"];
-  if (!s.aroll) return ["⚠ ফুটেজ (aroll) এই ভিডিওর ফোল্ডারে নেই", "ফাইলটা সরানো হয়েছে — উপরে নতুন ভিডিও হিসেবে আবার দিন"];
-  if (!s.transcribed && !s.transcript) return [`npm run transcribe -- ${v.slug}`, "টার্মিনালে চালান"];
+  if (!s.transcribed && !s.transcript) return s.aroll ? [`npm run transcribe -- ${v.slug}`, "টার্মিনালে চালান"] : null;
   if (!s.timeline) return [`${v.slug} প্রসেস করো`, "Claude-কে বলুন"];
+  if (!s.aroll) return null; // স্টুডিও/রেন্ডারে ফুটেজ লাগবে
   if (!s.rendered) return [`npm run studio -- ${v.slug}`, "দেখে নিন, তারপর Claude-কে বলুন \"রেন্ডার করো\""];
   return [`${v.slug}-এর edit plan বদলাও: …`, "কিছু বদলাতে চাইলে Claude-কে বলুন"];
 };
 const fmt = (sec) => (sec >= 60 ? `${Math.floor(sec / 60)} মি. ${Math.round(sec % 60)} সে.` : `${Math.round(sec)} সে.`);
-const openCards = new Set();
 
-const videoCard = (v) => {
-  const card = h("div", { class: "card" });
-  const head = h("div", { class: "vhead" },
-    h("h2", {}, v.slug, v.slug === S.current && h("span", { class: "tag" }, "এখনকার")),
-    h("span", { style: "color:var(--muted);font-size:14px" }, v.durationSec ? `${fmt(v.durationSec)} · ${v.size}` : ""));
-  const steps = h("div", { class: "steps" }, STEPS.map(([k, label]) => h("span", { class: v.steps[k] ? "done" : "" }, (v.steps[k] ? "✓ " : "") + label)));
-  card.append(head, steps);
+// কার্ড একবারই তৈরি হয়, পরে শুধু বদলানো অংশ আপডেট — তাই আপলোড বা অবস্থা-আপডেটের সময়
+// লেখা নোট, খোলা নাম-বক্স, বাকি ফাইলের লাইন, চলতে থাকা মিউজিক কিছুই হারায় না
+const cards = new Map(); // slug → { el, det, update, dirty }
+const makeCard = (slug) => {
+  const head = h("div", { class: "vhead" });
+  const steps = h("div", { class: "steps" });
+  const status = h("div");
 
-  if (v.job && !v.job.done) {
-    card.append(h("div", { class: "claude" }, h("code", {}, "⏳ ট্রান্সক্রাইব হচ্ছে… প্রথমবার মডেল নামতে কিছুক্ষণ লাগে।")));
-    card.append(h("pre", { class: "log" }, v.job.log.trim().split("\n").slice(-12).join("\n") || "শুরু হচ্ছে…"));
-    return card;
-  }
-  if (v.job && !v.job.ok) card.append(h("pre", { class: "log" }, v.job.log.trim().split("\n").slice(-15).join("\n")));
+  // ফুটেজ হারালে: একই ফুটেজ আবার দেওয়ার জায়গা
+  const arollMsg = h("span");
+  const arollDrop = h("div", { class: "drop", "data-kind": "video-aroll" }, h("b", {}, "ফুটেজ (A-roll) আবার দিন"), h("br"), "টেনে আনুন বা ক্লিক করুন", h("input", { type: "file", accept: "video/*" }));
+  const arollBox = h("div", { class: "notice", hidden: true }, h("b", {}, "⚠ এই ভিডিওর ফুটেজ ফোল্ডারে নেই। "), arollMsg, arollDrop);
 
-  const ns = nextStep(v);
-  if (ns) {
-    const copy = h("button", { class: "btn", onclick: async () => { await navigator.clipboard.writeText(ns[0]); toast("✓ কপি হয়েছে"); } }, "কপি");
-    card.append(h("div", { class: "claude" }, h("span", { style: "font-size:13px;color:var(--muted);width:100%" }, ns[1]), h("code", {}, ns[0]), copy));
-  }
-  if (!v.durationSec) return card;
-
-  // নোট: Claude এটা পড়ে শট প্ল্যান/বানান ঠিক করার সময়
-  const notes = h("textarea", { placeholder: "যেমন:\n- ভিডিওটা 6000W লেজার কাটিং মেশিন নিয়ে\n- মেশিনের নাম: ATI Laser, দাম ৳১২,৫০,০০০\n- শেষে ফোন নম্বর বড় করে দেখাও\n- 0:45 থেকে মেশিনের B-roll বেশি ব্যবহার করো" });
-  notes.value = v.notes;
-  const saveNotes = h("button", { class: "btn ghost", onclick: async () => {
-    try { S = await api("/api/notes?slug=" + v.slug, { method: "POST", body: notes.value }); toast("✓ নোট সেভ হয়েছে → notes.md"); }
+  // নোট: Claude এটা পড়ে শট প্ল্যান/বানান ঠিক করার সময়। ঘর থেকে বের হলেই নিজে সেভ হয়
+  const notes = h("textarea", { placeholder: "যেমন:\n- ধরন: পণ্যের মার্কেটিং ভিডিও (বা টিউটোরিয়াল)\n- কোথায় যাবে: Facebook + Reels (বা YouTube)\n- মেশিনের নাম: ATI Laser 6000W, দাম ৳১২,৫০,০০০\n- অফার: ঢাকায় ফ্রি ডেলিভারি, ২ বছর ওয়ারেন্টি\n- 0:45 থেকে মেশিনের B-roll বেশি ব্যবহার করো" });
+  const noteState = h("span", { class: "notestate" });
+  let savedNotes = null; // সার্ভারে যা আছে
+  let saving = false;
+  const dirty = () => savedNotes !== null && notes.value.trim() !== savedNotes;
+  const markNotes = () => (noteState.textContent = dirty() ? "● সেভ হয়নি" : savedNotes ? "✓ সেভ আছে (notes.md)" : "");
+  const saveNotes = async () => {
+    if (saving || !dirty()) return;
+    saving = true;
+    try { S = await api("/api/notes?slug=" + slug, { method: "POST", body: notes.value }); render(); toast("✓ নোট সেভ হয়েছে → notes.md"); }
     catch (e) { toast(e.message, true); }
-  } }, "নোট সেভ করো");
+    saving = false;
+  };
+  notes.addEventListener("input", markNotes);
+  notes.addEventListener("change", saveNotes);
 
   const brollDrop = h("div", { class: "drop", "data-kind": "video-broll", "data-rename": true }, h("b", {}, "এই ভিডিওর B-roll"), h("br"), "ভিডিও বা ছবি", h("input", { type: "file", accept: "video/*,image/*", multiple: true }));
   const musicDrop = h("div", { class: "drop", "data-kind": "video-music", "data-rename": true }, h("b", {}, "এই ভিডিওর মিউজিক"), h("br"), "ঐচ্ছিক", h("input", { type: "file", accept: "audio/*", multiple: true }));
   const bList = h("ul", { class: "files" });
   const mList = h("ul", { class: "files" });
-  fileList(bList, v.broll, "এখনো নেই — লাইব্রেরির B-roll-ও ব্যবহার হবে");
-  fileList(mList, v.music, "নেই — লাইব্রেরির মিউজিক ব্যবহার হবে");
+  const makeCurrent = h("button", { class: "btn ghost", onclick: async () => {
+    try { S = await api("/api/current?slug=" + slug, { method: "POST" }); render(); } catch (e) { toast(e.message, true); }
+  } }, "এখনকার ভিডিও করো");
 
-  const det = h("details", { open: openCards.has(v.slug) || null, ontoggle: (e) => (e.target.open ? openCards.add(v.slug) : openCards.delete(v.slug)) },
+  const det = h("details", {},
     h("summary", {}, "রিসোর্স আর নোট"),
     h("div", { class: "grid2", style: "margin-top:14px" },
       h("div", {}, brollDrop, bList),
       h("div", {}, musicDrop, mList)),
-    h("label", { class: "f", style: "margin-top:18px" }, "Claude-এর জন্য নোট", h("small", {}, "বিষয়, পণ্যের নাম, দাম, কোথায় কী দেখাবে — Claude বানান ঠিক আর শট প্ল্যানের সময় পড়বে"), notes),
-    h("div", { class: "row", style: "margin-top:10px" }, saveNotes,
-      v.slug !== S.current && h("button", { class: "btn ghost", onclick: async () => { S = await api("/api/current?slug=" + v.slug, { method: "POST" }); render(); } }, "এখনকার ভিডিও করো")));
+    h("label", { class: "f", style: "margin-top:18px" }, "Claude-এর জন্য নোট", h("small", {}, "ভিডিওর ধরন (মার্কেটিং / টিউটোরিয়াল), কোথায় যাবে, পণ্যের নাম, দাম, অফার, কোথায় কী দেখাবে — Claude বানান ঠিক আর শট প্ল্যানের সময় পড়বে"), notes),
+    h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn ghost", onclick: saveNotes }, "নোট সেভ করো"), noteState, makeCurrent));
   // থাম্বনেইল: npm run thumbs দিয়ে বের করা ফ্রেম + বানানো থাম্বনেইল
-  const thumbCmd = `npm run thumbs -- ${v.slug}`;
-  const thumbs = h("details", {}, h("summary", {}, `থাম্বনেইল${v.thumbs.length ? ` (${v.thumbs.length})` : ""}`),
-    v.thumbs.length
-      ? h("div", { class: "thumbs" }, v.thumbs.map((t) => h("figure", { class: t.name === "thumbnail.jpg" ? "final" : "" },
-          h("a", { href: t.url, target: "_blank" }, h("img", { src: t.url + "?v=" + t.size, alt: t.name, loading: "lazy" })),
-          t.name === "thumbnail.jpg" ? "✓ তৈরি থাম্বনেইল (output/thumbnail.jpg)" : t.name.replace(/^cand-0?(\d+)\.jpg$/, "ফ্রেম $1"))))
-      : h("p", { class: "hint" }, "এখনো নেই। ভিডিওর সবচেয়ে পরিষ্কার ৮টা ফ্রেম বের করতে টার্মিনালে: ", h("code", {}, thumbCmd)),
-    h("p", { class: "hint", style: "margin-top:10px" }, "পছন্দের ফ্রেম বেছে Claude-কে বলুন: ", h("code", {}, `${v.slug}-এর থাম্বনেইল বানাও, ফ্রেম ৩, লেখা: …`)));
-  card.append(det, thumbs);
-  wireDrop(brollDrop, v.slug);
-  wireDrop(musicDrop, v.slug);
-  return card;
+  const thumbSum = h("summary");
+  const thumbBody = h("div");
+  const thumbs = h("details", {}, thumbSum, thumbBody,
+    h("p", { class: "hint", style: "margin-top:10px" }, "পছন্দের ফ্রেম বেছে Claude-কে বলুন: ", h("code", {}, `${slug}-এর থাম্বনেইল বানাও, ফ্রেম ৩, লেখা: …`)));
+  const body = h("div", { hidden: true }, det, thumbs);
+  const el = h("div", { class: "card" }, head, steps, status, arollBox, body);
+  wireDrop(arollDrop, slug);
+  wireDrop(brollDrop, slug);
+  wireDrop(musicDrop, slug);
+
+  const update = (v) => {
+    head.replaceChildren(
+      h("h2", {}, v.slug, v.slug === S.current && h("span", { class: "tag" }, "এখনকার")),
+      h("span", { style: "color:var(--muted);font-size:14px" }, v.durationSec ? `${fmt(v.durationSec)} · ${v.size}` : ""));
+    steps.replaceChildren(...STEPS.map(([k, label]) => h("span", { class: v.steps[k] ? "done" : "" }, (v.steps[k] ? "✓ " : "") + label)));
+
+    const running = v.job && !v.job.done;
+    const lines = v.job ? v.job.log.trim().split("\n") : [];
+    status.replaceChildren();
+    if (running) {
+      status.append(
+        h("div", { class: "claude" }, h("code", {}, v.job.waiting ? "⏳ অপেক্ষায় — আগের ভিডিওর ট্রান্সক্রিপশন শেষ হলে শুরু হবে।" : "⏳ ট্রান্সক্রাইব হচ্ছে… প্রথমবার মডেল নামতে কিছুক্ষণ লাগে।")),
+        h("pre", { class: "log" }, lines.slice(-12).join("\n") || "শুরু হচ্ছে…"));
+    } else {
+      if (v.job && !v.job.ok) status.append(h("pre", { class: "log" }, lines.slice(-15).join("\n")));
+      // ফুটেজের ফরম্যাট নিয়ে সতর্কতা (HDR, ProRes, H.265…) — কাজ সফল হলেও দেখাই
+      const warns = v.job?.ok ? lines.filter((l) => l.trim().startsWith("⚠")) : [];
+      if (warns.length) status.append(h("p", { class: "warn", style: "margin:0 0 12px;white-space:pre-wrap" }, warns.join("\n")));
+      const ns = nextStep(v);
+      if (ns) {
+        const copy = h("button", { class: "btn", onclick: async () => {
+          try { await navigator.clipboard.writeText(ns[0]); toast("✓ কপি হয়েছে"); } catch { toast("কপি হয়নি — লেখাটা সিলেক্ট করে কপি করুন", true); }
+        } }, "কপি");
+        status.append(h("div", { class: "claude" }, h("span", { style: "font-size:13px;color:var(--muted);width:100%" }, ns[1]), h("code", {}, ns[0]), copy));
+      }
+    }
+
+    const ready = Boolean(v.durationSec) && !running;
+    arollBox.hidden = !ready || v.steps.aroll;
+    arollMsg.textContent = v.steps.transcribed || v.steps.transcript
+      ? "ক্যাপশন আর শট প্ল্যানের কাজ চলবে, কিন্তু প্রিভিউ আর রেন্ডারের আগে একই ফুটেজ (একই কাট) আবার দিতে হবে।"
+      : "ফুটেজ দিলে ট্রান্সক্রাইব নিজে থেকে শুরু হবে।";
+    body.hidden = !ready;
+    if (!ready) return;
+
+    fileList(bList, v.broll, "এখনো নেই — লাইব্রেরির B-roll-ও ব্যবহার হবে", "video-broll", slug);
+    fileList(mList, v.music, "নেই — লাইব্রেরির মিউজিক ব্যবহার হবে", "video-music", slug);
+    // লেখার মাঝে থাকা নোট সার্ভারের লেখা দিয়ে চাপা দিই না
+    const wasDirty = dirty();
+    savedNotes = v.notes.trim();
+    if (!wasDirty && notes.value.trim() !== savedNotes) notes.value = savedNotes;
+    markNotes();
+    makeCurrent.hidden = v.slug === S.current;
+
+    thumbSum.textContent = `থাম্বনেইল${v.thumbs.length ? ` (${v.thumbs.length})` : ""}`;
+    const sig = JSON.stringify(v.thumbs.map((t) => [t.name, t.size]));
+    if (thumbBody.dataset.sig !== sig) {
+      thumbBody.dataset.sig = sig;
+      thumbBody.replaceChildren(v.thumbs.length
+        ? h("div", { class: "thumbs" }, v.thumbs.map((t) => h("figure", { class: t.name === "thumbnail.jpg" ? "final" : "" },
+            h("a", { href: t.url, target: "_blank" }, h("img", { src: t.url + "?v=" + t.size, alt: t.name, loading: "lazy" })),
+            t.name === "thumbnail.jpg" ? "✓ তৈরি থাম্বনেইল (output/thumbnail.jpg)" : t.name.replace(/^cand-0?(\d+)\.jpg$/, "ফ্রেম $1"))))
+        : h("p", { class: "hint" }, "এখনো নেই। ভিডিওর সবচেয়ে পরিষ্কার ৮টা ফ্রেম বের করতে টার্মিনালে: ", h("code", {}, `npm run thumbs -- ${slug}`)));
+    }
+  };
+  return { el, det, update, dirty };
 };
 
 // নতুন ভিডিও
 let newFile = null;
 const newDrop = $("#newDrop");
-const pickNew = (f) => { newFile = f; $("#newFile").textContent = f ? `${f.name} (${size(f.size)})` : "টেনে আনুন বা ক্লিক করুন"; checkNew(); };
+const pickNew = (f) => {
+  const bad = f ? badType("video-aroll", f.name) : "";
+  if (bad) { toast(bad, true); f = null; }
+  newFile = f || null;
+  if (!newFile) $("input", newDrop).value = "";
+  $("#newFile").textContent = newFile ? `${newFile.name} (${size(newFile.size)})` : "টেনে আনুন বা ক্লিক করুন";
+  checkNew();
+};
 const checkNew = () => {
   const slug = $("#newSlug").value.trim();
   const ok = /^[a-z0-9][a-z0-9-]{0,60}$/.test(slug);
-  const taken = S?.videos.some((v) => v.slug === slug);
+  // আগের চেষ্টা ফোল্ডার তৈরির আগেই ব্যর্থ হলে একই নামে আবার দেওয়া যায়
+  const taken = S?.videos.some((v) => v.slug === slug && (v.durationSec !== null || (v.job && !v.job.done)));
   $("#newErr").textContent = slug && !ok ? "শুধু ছোট ইংরেজি অক্ষর, সংখ্যা আর -" : taken ? "এই নামে ভিডিও আছে" : "";
   $("#newBtn").disabled = !(ok && !taken && newFile);
 };
@@ -596,8 +723,8 @@ $("#newBtn").addEventListener("click", async () => {
     S = await upload(`/api/new?slug=${slug}&name=${encodeURIComponent(newFile.name)}`, newFile, (p) => ($("i", prog).style.width = p * 100 + "%"));
     toast("✓ ফুটেজ রাখা হয়েছে, ট্রান্সক্রাইব শুরু");
     $("#newSlug").value = ""; pickNew(null);
-    openCards.add(slug);
     render();
+    if (cards.has(slug)) cards.get(slug).det.open = true;
   } catch (e) { $("#newErr").textContent = e.message; $("#newBtn").disabled = false; }
   prog.classList.remove("on");
 });
@@ -609,23 +736,30 @@ const render = () => {
   thumb($("#qrThumb"), S.qr);
   $('[data-remove="logo"]').hidden = !S.logo;
   $('[data-remove="qr"]').hidden = !S.qr;
-  fileList($("#libMusic"), S.library.music, "এখনো কোনো মিউজিক নেই");
-  fileList($("#libBroll"), S.library.broll, "এখনো কোনো শেয়ার্ড B-roll নেই");
-  // খোলা নোট-বক্সে লেখার সময় তালিকা আবার আঁকি না
-  if (!document.activeElement?.closest("#videoList")) {
-    $("#videoList").replaceChildren(...(S.videos.length ? S.videos.map(videoCard) : [h("div", { class: "card" }, h("p", { class: "hint", style: "margin:0" }, "এখনো কোনো ভিডিও নেই। উপরে ফুটেজ দিয়ে শুরু করুন।"))]));
+  fileList($("#libMusic"), S.library.music, "এখনো কোনো মিউজিক নেই", "library-music");
+  fileList($("#libBroll"), S.library.broll, "এখনো কোনো শেয়ার্ড B-roll নেই", "library-broll");
+  // ভিডিও কার্ড: নতুন হলে তৈরি, থাকলে আপডেট, চলে গেলে বাদ; ক্রম বদলালেই শুধু আবার বসাই
+  const list = $("#videoList");
+  for (const v of S.videos) {
+    if (!cards.has(v.slug)) cards.set(v.slug, makeCard(v.slug));
+    cards.get(v.slug).update(v);
   }
+  for (const slug of [...cards.keys()]) if (!S.videos.some((v) => v.slug === slug)) cards.delete(slug);
+  const want = S.videos.length ? S.videos.map((v) => cards.get(v.slug).el) : [noVideos];
+  if (want.length !== list.children.length || want.some((el, i) => el !== list.children[i])) list.replaceChildren(...want);
   checkNew();
   refresh();
 };
+const noVideos = h("div", { class: "card" }, h("p", { class: "hint", style: "margin:0" }, "এখনো কোনো ভিডিও নেই। উপরে ফুটেজ দিয়ে শুরু করুন।"));
 
 // প্রসেস চলাকালীন প্রতি ২ সেকেন্ডে অবস্থা দেখা
+const sync = async () => { try { S = await api("/api/state"); render(); } catch {} };
 const poll = async () => {
-  if (S?.videos.some((v) => v.job && !v.job.done)) {
-    try { S = await api("/api/state"); render(); } catch {}
-  }
+  if (S?.videos.some((v) => v.job && !v.job.done)) await sync();
   setTimeout(poll, 2000);
 };
+// পেজে ফিরে এলে নতুন অবস্থা: Claude বা টার্মিনাল এর মধ্যে ধাপ এগিয়ে থাকতে পারে, ফোল্ডারে ফাইল যোগ হতে পারে
+window.addEventListener("focus", () => S && sync());
 
 (async () => {
   try {

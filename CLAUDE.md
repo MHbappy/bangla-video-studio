@@ -12,7 +12,7 @@
 | ৩ ক্যাপশন লাইন | কমান্ড | `npm run finalize -- <slug>` |
 | ৪ শট প্ল্যান → `edit.json` | Claude | Skill **bangla-video-edit-plan** (আগে `npm run assets`) |
 | ৫ যাচাই → `timeline.json` | কমান্ড | `npm run plan -- <slug>` (error নিজে ঠিক করবে) |
-| ৬ রিভিউ | ব্যবহারকারী | `npm run studio -- <slug>` |
+| ৬ রিভিউ | ব্যবহারকারী | `npm run studio -- <slug>` (Claude এক শটের ছবি দেখে: `npm run frame -- <slug> --shot N [--format shorts]`) |
 | ৭ রেন্ডার | কমান্ড | `npm run render -- <slug> [--format main\|shorts\|graphics\|all] [--from s --to s] [--fast]` |
 | ৮ থাম্বনেইল | Claude | `npm run thumbs -- <slug>` → ফ্রেম বেছে `--pick N --title "…"` (Skill **bangla-video-edit-plan**) |
 
@@ -30,7 +30,7 @@ B-roll/মিউজিকের নাম আগে ভিডিওর ফোল
 
 ## কোড মানচিত্র
 - `src/main/Edit.tsx` — Main/Vertical/Graphics তিনটার রেন্ডারার; `geometry.ts` — লেআউটের জায়গা (১৬:৯ ও ৯:১৬)
-- `src/scenes/` — TitleCard, ChapterCard, BulletList, StatCard, LowerThird, CTA, Callout, Compare
+- `src/scenes/` — TitleCard, ChapterCard, BulletList, StatCard, LowerThird, CTA, Callout, Compare, Offer (আগের দাম কেটে নতুন দাম), SpecTable, Review
 - `src/theme.ts` — ব্র্যান্ড; `src/timeline-types.ts` — edit/timeline স্কিমা
 - `scripts/` — পাইপলাইন; `docs/` — ব্যবহারকারীর গাইড
 

@@ -29,6 +29,13 @@ export const formatWarning = (v: Stream): string | undefined => {
   return notes.length ? notes.join(" · ") : undefined;
 };
 
+// ফোনের খাড়া ভিডিও/ছবি প্রায়ই শোয়ানো মাপে সেভ হয়, সাথে "৯০° ঘোরাও" লেখা থাকে — দেখা যায় যে মাপে সেটা
+type Sized = { width: number; height: number; tags?: { rotate?: string }; side_data_list?: { rotation?: number }[] };
+const shownSize = (v: Sized): [number, number] => {
+  const rot = Math.abs(Number(v.tags?.rotate ?? v.side_data_list?.find((x) => x.rotation !== undefined)?.rotation ?? 0));
+  return rot % 180 === 90 ? [v.height, v.width] : [v.width, v.height];
+};
+
 export const probeVideo = (file: string): VideoInfo => {
   const out = run("ffprobe", ["-v", "error", "-print_format", "json", "-show_streams", "-show_format", file]);
   const p = JSON.parse(out.slice(out.indexOf("{")));
@@ -36,8 +43,7 @@ export const probeVideo = (file: string): VideoInfo => {
   if (!v) throw new Error("ভিডিও স্ট্রিম পাওয়া যায়নি");
   const [n, d] = String(v.avg_frame_rate || v.r_frame_rate).split("/").map(Number);
   const fps = Math.round((n / (d || 1)) * 100) / 100 || 30;
-  const rot = Math.abs(Number(v.tags?.rotate ?? v.side_data_list?.find((x: { rotation?: number }) => x.rotation !== undefined)?.rotation ?? 0));
-  const [width, height] = rot === 90 ? [v.height, v.width] : [v.width, v.height];
+  const [width, height] = shownSize(v);
   return { width, height, fps, durationSec: Number(p.format.duration), codec: v.codec_name, warn: formatWarning(v) };
 };
 
@@ -71,11 +77,12 @@ export const probeMedia = (file: string): MediaInfo => {
   const p = JSON.parse(out.slice(out.indexOf("{")));
   const v = p.streams.find((s: { codec_type: string }) => s.codec_type === "video");
   const dur = Number(p.format?.duration);
-  if (IMAGE_EXT.includes(ext)) return { kind: "image", durationSec: null, width: v?.width, height: v?.height };
+  const [width, height] = v ? shownSize(v) : [undefined, undefined];
+  if (IMAGE_EXT.includes(ext)) return { kind: "image", durationSec: null, width, height };
   if (v) {
     const [n, d] = String(v.avg_frame_rate || v.r_frame_rate).split("/").map(Number);
     const hasAudio = p.streams.some((s: { codec_type: string }) => s.codec_type === "audio");
-    return { kind: "video", durationSec: isFinite(dur) ? dur : null, width: v.width, height: v.height, fps: Math.round((n / (d || 1)) * 100) / 100 || undefined, hasAudio, codec: v.codec_name, warn: formatWarning(v) };
+    return { kind: "video", durationSec: isFinite(dur) ? dur : null, width, height, fps: Math.round((n / (d || 1)) * 100) / 100 || undefined, hasAudio, codec: v.codec_name, warn: formatWarning(v) };
   }
   return { kind: "audio", durationSec: isFinite(dur) ? dur : null };
 };

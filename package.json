@@ -17,6 +17,7 @@
     "studio": "tsx scripts/studio.ts",
     "render": "tsx scripts/render.ts",
     "thumbs": "tsx scripts/thumbs.ts",
+    "frame": "tsx scripts/frame.ts",
     "demo": "tsx scripts/demo.ts",
     "ui": "tsx scripts/ui.ts",
     "typecheck": "tsc -p ."

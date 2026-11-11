@@ -3,7 +3,7 @@ import { Easing, interpolate, OffthreadVideo, staticFile, useCurrentFrame, useVi
 import { theme } from "../theme";
 import { AROLL_FULL, type Grade, type TimelineShot } from "../timeline-types";
 import { gradeFilter } from "./BRoll";
-import { arollOnTop, arollRect, lerpRect } from "./geometry";
+import { arollOnTop, arollRect, brollFits, lerpRect } from "./geometry";
 
 // A-roll পুরো ভিডিওতে একটাই — শুধু জায়গা/আকার/ক্রপ বদলায়, অডিও কখনো থামে না
 export const ARollLayer: React.FC<{ src: string; shots: TimelineShot[]; focus: string; grade?: Grade }> = ({ src, shots, focus, grade }) => {
@@ -13,12 +13,13 @@ export const ARollLayer: React.FC<{ src: string; shots: TimelineShot[]; focus: s
   const i = Math.max(0, shots.findIndex((s) => frame >= f(s.startMs) && frame < f(s.endMs)));
   const cur = shots[i];
   const prev = shots[i - 1];
-  const target = arollRect(cur.layout, W, H);
+  const rectOf = (s: TimelineShot) => arollRect(s.layout, W, H, brollFits(s.broll, s.layout, W, H));
+  const target = rectOf(cur);
   const t = frame - f(cur.startMs);
 
   let rect = target;
   if (prev) {
-    const from = arollRect(prev.layout, W, H);
+    const from = rectOf(prev);
     if (from.opacity === 0 && target.opacity > 0) rect = target;
     else if (target.opacity === 0 && from.opacity > 0) rect = t < theme.brollFadeFrames ? from : target;
     else {

@@ -1,13 +1,14 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { theme } from "../theme";
-import { FullBg, type SceneProps, useEnter, useExit, useUnit } from "./common";
+import { FullBg, type SceneProps, useEnter, useExit, useTopClear, useUnit } from "./common";
 
 export const CTA: React.FC<SceneProps<{ text: string; sub?: string }>> = ({ text, sub, mode }) => {
   const u = useUnit();
   const frame = useCurrentFrame();
   const e = useEnter(0, theme.pop);
   const exit = useExit();
+  const clear = useTopClear();
   const pulse = 1 + 0.03 * Math.sin(frame / 6) * interpolate(frame, [15, 25], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const pill = (size: number) => (
     <div style={{ textAlign: "center", opacity: exit }}>
@@ -16,5 +17,5 @@ export const CTA: React.FC<SceneProps<{ text: string; sub?: string }>> = ({ text
     </div>
   );
   if (mode === "full") return <FullBg><AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>{pill(80 * u)}</AbsoluteFill></FullBg>;
-  return <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "center", paddingTop: 80 * u, fontFamily: theme.font }}>{pill(48 * u)}</AbsoluteFill>;
+  return <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "center", paddingTop: Math.max(80 * u, clear), fontFamily: theme.font }}>{pill(48 * u)}</AbsoluteFill>;
 };

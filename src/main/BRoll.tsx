@@ -2,7 +2,7 @@ import React from "react";
 import { Img, interpolate, Loop, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { theme } from "../theme";
 import type { Grade, Layout, TimelineShot } from "../timeline-types";
-import { brollRect } from "./geometry";
+import { brollFits, brollRect, fitBox } from "./geometry";
 
 const moveTransform = (move: string, p: number) => {
   const e = p * p * (3 - 2 * p); // smoothstep — শুরু/শেষে নরম
@@ -26,25 +26,34 @@ export const BRoll: React.FC<{ broll: NonNullable<TimelineShot["broll"]>; layout
   const p = interpolate(frame, [0, durationInFrames], [0, 1], { extrapolateRight: "clamp" });
   const fade = interpolate(frame, [0, theme.brollFadeFrames], [0, 1], { extrapolateRight: "clamp" });
   const src = staticFile(broll.path);
-  const style: React.CSSProperties = { width: "100%", height: "100%", objectFit: "cover", transform: moveTransform(move, p), filter: gradeFilter(broll.grade) };
+  const style: React.CSSProperties = { width: "100%", height: "100%", objectFit: "cover", objectPosition: broll.focus ?? "50% 50%", transform: moveTransform(move, p), filter: gradeFilter(broll.grade) };
+  // fit: ফুটেজ আর ফ্রেমের আকার না মিললে পুরো ছবিটা নিজের মাপে, পেছনে তারই ঝাপসা কপি (কিছু কাটা পড়ে না)
+  const inner = broll.aspect && brollFits(broll, layout, W, H) ? fitBox(layout, W, H, broll.aspect) : null;
+  const backStyle: React.CSSProperties = { width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.25)", filter: `blur(${Math.round(Math.min(W, H) / 27)}px) brightness(0.45)` };
 
-  let media: React.ReactNode;
-  if (broll.kind === "image") media = <Img src={src} style={style} />;
-  else {
+  const clip = (st: React.CSSProperties, withSound: boolean) => {
+    if (broll.kind === "image") return <Img src={src} style={st} />;
     const rate = broll.rate ?? 1;
     const startFrom = Math.round((broll.from ?? 0) * fps);
     // লুপের দৈর্ঘ্য: গতি কমালে ক্লিপ বেশিক্ষণ চলে
     const clipFrames = broll.durationSec ? Math.floor((broll.durationSec * fps - startFrom) / rate) : Infinity;
-    const sound = broll.sound ?? 0;
+    const sound = withSound ? broll.sound ?? 0 : 0;
     // নিজের শব্দ: শুরু/শেষে ছোট ফেড (ক্লিক এড়াতে)
     const volume = (f: number) =>
       sound * interpolate(f, [0, 6, durationInFrames - 8, durationInFrames], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-    const video = <OffthreadVideo src={src} muted={sound <= 0} volume={sound > 0 ? volume : undefined} playbackRate={rate} startFrom={startFrom} style={style} />;
-    media = clipFrames > 0 && clipFrames < durationInFrames ? <Loop durationInFrames={clipFrames}>{video}</Loop> : video;
-  }
+    const video = <OffthreadVideo src={src} muted={sound <= 0} volume={sound > 0 ? volume : undefined} playbackRate={rate} startFrom={startFrom} style={st} />;
+    return clipFrames > 0 && clipFrames < durationInFrames ? <Loop durationInFrames={clipFrames}>{video}</Loop> : video;
+  };
   return (
     <div style={{ position: "absolute", left: r.x, top: r.y, width: r.w, height: r.h, overflow: "hidden", opacity: fade, zIndex: 20, background: "#000" }}>
-      {media}
+      {inner ? (
+        <>
+          {clip(backStyle, false)}
+          <div style={{ position: "absolute", left: inner.x - r.x, top: inner.y - r.y, width: inner.w, height: inner.h, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,.45)" }}>{clip(style, true)}</div>
+        </>
+      ) : (
+        clip(style, true)
+      )}
     </div>
   );
 };

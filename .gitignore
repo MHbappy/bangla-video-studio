@@ -13,8 +13,9 @@ media/.current
 .env
 .claude/settings.local.json
 
-# ব্র্যান্ডের পুরনো (সরানো) লোগো/QR
+# রিসোর্স ম্যানেজার থেকে সরানো/বদলানো ফাইল (মোছা হয় না, এখানে থাকে)
 media/library/brand/.removed/
+media/.removed/
 
 # OS / এডিটর
 .DS_Store

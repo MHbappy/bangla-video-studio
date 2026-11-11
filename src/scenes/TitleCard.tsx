@@ -1,16 +1,17 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
 import { theme } from "../theme";
-import { FullBg, type SceneProps, useEnter, useExit, useUnit } from "./common";
+import { FullBg, type SceneProps, useEnter, useExit, useTopClear, useUnit } from "./common";
 
 export const TitleCard: React.FC<SceneProps<{ title: string; subtitle?: string }>> = ({ title, subtitle, mode }) => {
   const u = useUnit();
   const t = useEnter();
   const s = useEnter(8);
   const exit = useExit();
+  const clear = useTopClear();
   if (mode === "overlay")
     return (
-      <AbsoluteFill style={{ padding: 70 * u, fontFamily: theme.font, opacity: exit }}>
+      <AbsoluteFill style={{ padding: 70 * u, paddingTop: Math.max(70 * u, clear), fontFamily: theme.font, opacity: exit }}>
         <div style={{ alignSelf: "flex-start", background: theme.color.panel, borderRadius: theme.radius * u, padding: `${22 * u}px ${36 * u}px`, transform: `translateY(${(1 - t) * -40 * u}px)`, opacity: t }}>
           <div style={{ fontSize: 58 * u, fontWeight: 700, color: theme.color.text }}>{title}</div>
           {subtitle && <div style={{ fontSize: 32 * u, color: theme.color.accent }}>{subtitle}</div>}

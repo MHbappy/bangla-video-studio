@@ -35,7 +35,8 @@ npm run render -- --format shorts --from 65 --to 120   # একই এডিট 
 
 ## কী পাবেন
 - ৭টা লেআউট: `aroll` · `aroll+gfx` · `broll` · `split` · `pip` · `motion` · `motion+aroll` — ১৬:৯ ও ৯:১৬ দুটোতেই
-- ৮টা মোশন scene: TitleCard · ChapterCard · BulletList · StatCard · LowerThird · CTA · Callout · Compare
+- B-roll আর স্ক্রিন রেকর্ডিংয়ের উপরেও গ্রাফিক্স: পণ্যের শটে দাম/ফিচার, স্ক্রিনে "এখানে চাপুন" তীর
+- ১১টা মোশন scene: TitleCard · ChapterCard · BulletList · StatCard · LowerThird · CTA · Callout · Compare · Offer (অফারের দাম) · SpecTable (স্পেক টেবিল) · Review (কাস্টমারের কথা)
 - ব্র্যান্ডিং: কোণায় লোগো, মাঝে মাঝে যোগাযোগ বার (ফোন, ঠিকানা, সোশ্যাল, QR) — `media/library/brand/brand.json` একবার সেট করলেই
 - অটো পাঞ্চ-ইন (জাম্প-কাট ঢাকে), ধীর জুম, Ken Burns B-roll
 - সাউন্ড: A-roll অডিও একটানা, মিউজিক কথার সময় নিচু, whoosh/pop SFX, -14 LUFS মাস্টারিং

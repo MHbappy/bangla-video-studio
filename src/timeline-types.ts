@@ -3,7 +3,7 @@
 export const LAYOUTS = ["aroll", "aroll+gfx", "broll", "split", "pip", "motion", "motion+aroll", "endscreen"] as const;
 export type Layout = (typeof LAYOUTS)[number];
 
-export const SCENES = ["TitleCard", "ChapterCard", "BulletList", "StatCard", "LowerThird", "CTA", "Callout", "Compare"] as const;
+export const SCENES = ["TitleCard", "ChapterCard", "BulletList", "StatCard", "LowerThird", "CTA", "Callout", "Compare", "Offer", "SpecTable", "Review"] as const;
 export type SceneName = (typeof SCENES)[number];
 
 export const MOVES = ["none", "slowZoomIn", "slowZoomOut", "panLeft", "panRight"] as const;
@@ -54,14 +54,21 @@ export type BrollRef = {
   sound?: number; // B-roll-এর নিজের শব্দ (০–১), যেমন মেশিন চলার শব্দ 0.15; ডিফল্ট 0 = বন্ধ
   rate?: number; // গতি: 0.5 = স্লো-মোশন (৬০fps ফুটেজে মসৃণ), 2 = দ্রুত
   grade?: Grade; // এই ক্লিপের রং (না দিলে edit.json-এর brollGrade)
+  // ফুটেজ আর ফ্রেমের আকার না মিললে (চওড়া ক্লিপ খাড়া Shorts-এ, বা ফোনের খাড়া ক্লিপ ১৬:৯-এ):
+  // "fit" = পুরো ছবি দেখায়, পেছনে ঝাপসা কপি · "fill" = ফ্রেম ভরে, পাশ কাটা পড়ে
+  // না দিলে: কাটলে অর্ধেকের বেশি হারালে fit, নইলে fill
+  fit?: Fit;
+  focus?: string; // fill-এ কোন অংশ থাকবে (CSS object-position), যেমন "70% 50%" = ডান দিক; ডিফল্ট মাঝখান
 };
+export const FITS = ["fill", "fit"] as const;
+export type Fit = (typeof FITS)[number];
 
 // ---- edit.json ----
 export type EditShot = {
   until: string | number; // "c12" = ক্যাপশন লাইন ১২ শেষে | "end" | সেকেন্ড (42.5)
   layout: Layout;
   broll?: string | BrollRef; // broll / split / pip
-  gfx?: Gfx; // aroll+gfx / motion / motion+aroll
+  gfx?: Gfx; // aroll+gfx / motion / motion+aroll-এ আবশ্যক; broll / split / pip-এ ঐচ্ছিক — ফুটেজের উপর বসে (দাম, ফিচারের নাম, "এখানে চাপুন")
   punch?: number; // aroll / aroll+gfx: স্থির ক্রপ-জুম (জাম্প-কাট ঢাকতে), যেমন 1.12
   zoom?: number; // aroll / aroll+gfx: শট জুড়ে ধীরে পুশ-ইন, যেমন 1.08
   captions?: boolean; // false = এই শটে ক্যাপশন লুকানো
@@ -93,7 +100,7 @@ export type TimelineShot = {
   startMs: number;
   endMs: number;
   layout: Layout;
-  broll?: BrollRef & { path: string; kind: "video" | "image"; durationSec: number | null };
+  broll?: BrollRef & { path: string; kind: "video" | "image"; durationSec: number | null; aspect?: number }; // aspect = চওড়া ÷ উঁচু
   gfx?: Gfx;
   punch: number;
   zoom?: number;
@@ -116,3 +123,7 @@ export type Timeline = {
 export const NEEDS_BROLL: Layout[] = ["broll", "split", "pip"];
 export const NEEDS_GFX: Layout[] = ["aroll+gfx", "motion", "motion+aroll"];
 export const AROLL_FULL: Layout[] = ["aroll", "aroll+gfx"];
+// এই লেআউটগুলোতে gfx ফুটেজের উপরে (overlay) বসে; বাকিগুলোতে (motion…) পুরো স্ক্রিন নেয়
+export const GFX_OVERLAY: Layout[] = ["aroll+gfx", "broll", "split", "pip"];
+// overlay-এ ডান পাশের কার্ড (SidePanel) হয়ে বসে — split-এ B-roll-এর অর্ধেক ঢেকে দেয়
+export const SIDE_PANEL_SCENES: SceneName[] = ["BulletList", "StatCard", "Compare", "Offer", "SpecTable", "Review"];

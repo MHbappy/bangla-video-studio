@@ -56,7 +56,7 @@ const dashHelp = (): never => {
   process.exit(1);
 };
 // মান লাগে এমন অপশন npm খেয়ে ফেললে মানটা কোনটার ছিল আর বোঝা যায় না — শুরুতেই থামি
-if (["format", "from", "to", "pick", "title", "sub", "side", "quality", "device", "port"].some((n) => swallowed(n) !== undefined)) dashHelp();
+if (["format", "from", "to", "pick", "title", "sub", "side", "quality", "device", "port", "shot", "at"].some((n) => swallowed(n) !== undefined)) dashHelp();
 
 export const flag = (name: string) => {
   if (process.argv.includes(`--${name}`)) return true;

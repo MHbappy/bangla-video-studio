@@ -1,15 +1,26 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { theme } from "../theme";
+import type { Layout } from "../timeline-types";
 
 export type SceneMode = "full" | "overlay";
 export type SceneProps<T> = T & { mode: SceneMode };
+
+// overlay গ্রাফিক্স কোন লেআউটের উপর বসছে — PiP-এর ছোট A-roll বক্স এড়াতে লাগে
+export const ShotLayoutContext = createContext<Layout>("aroll+gfx");
+
+// খাড়া ফ্রেমে যোগাযোগ বার উপরে বসে — উপরের overlay গ্রাফিক্স (CTA, TitleCard, ডান পাশের কার্ড) এত px-এর নিচে নামে (০ = বার নেই)
+export const TopClearContext = createContext(0);
+export const useTopClear = () => useContext(TopClearContext);
 
 // স্কেল: 1080p-কে ভিত্তি ধরে সব মাপ (4K-তেও ঠিক থাকে)
 export const useUnit = () => {
   const { width, height } = useVideoConfig();
   return height > width ? (width / 1080) * 0.9 : Math.min(width / 1920, height / 1080);
 };
+
+// এক লাইনের বড় লেখা (দাম) জায়গায় ধরাতে: অক্ষর গুনে ফন্টের মাপ (1080p একক) — কখনো max-এর বেশি নয়
+export const fitFont = (text: string, max: number, width: number) => Math.min(max, width / (Math.max(1, [...text].length) * 0.6));
 
 export const useIsVertical = () => {
   const { width, height } = useVideoConfig();
@@ -52,15 +63,18 @@ export const FullBg: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 export const SidePanel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const u = useUnit();
   const vertical = useIsVertical();
-  const { height } = useVideoConfig();
+  const { width, height } = useVideoConfig();
   const enter = useEnter();
   const exit = useExit();
+  // PiP: ছোট A-roll বক্স ১৬:৯-এ নিচে-ডানে, খাড়ায় উপরে-বাঁয়ে (geometry.ts) — কার্ড তার বাইরে বসে
+  const pip = useContext(ShotLayoutContext) === "pip";
+  const clear = useTopClear();
   return (
     <AbsoluteFill
       style={
         vertical
-          ? { justifyContent: "flex-start", alignItems: "center", paddingTop: height * 0.12, fontFamily: theme.font }
-          : { justifyContent: "center", alignItems: "flex-end", padding: 70 * u, fontFamily: theme.font }
+          ? { justifyContent: "flex-start", alignItems: "center", paddingTop: Math.max(pip ? height * 0.11 + width * 0.42 + 40 * u : height * 0.12, clear), fontFamily: theme.font }
+          : { justifyContent: pip ? "flex-start" : "center", alignItems: "flex-end", padding: 70 * u, paddingTop: (pip ? 150 : 70) * u, fontFamily: theme.font }
       }
     >
       <div

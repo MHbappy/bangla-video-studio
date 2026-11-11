@@ -1,7 +1,7 @@
 // ব্র্যান্ড লেয়ার: কোণায় লোগো + মাঝে মাঝে যোগাযোগ বার (ফোন, নাম/ঠিকানা, সোশ্যাল, QR)
 import React from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
-import { useIsVertical, useUnit } from "../scenes/common";
+import { TopClearContext, useIsVertical, useUnit } from "../scenes/common";
 import { theme } from "../theme";
 import type { Social, TimelineBrand, TimelineShot } from "../timeline-types";
 
@@ -9,6 +9,9 @@ import type { Social, TimelineBrand, TimelineShot } from "../timeline-types";
 const BAR_H = 120;
 const BAR_MARGIN = 36;
 const FADE_MS = 300;
+// খাড়া (Shorts): বার উপরে — ফ্রেমের উচ্চতার এই ভগ্নাংশে শুরু, এই উচ্চতার (1080p একক)
+const V_BAR_TOP = 0.085;
+const V_BAR_H = 104;
 
 // এই মুহূর্তে বার কতটা দৃশ্যমান (০–১) — ক্যাপশন সরানোর জন্য
 export const barProgress = (brand: TimelineBrand | undefined, ms: number) => {
@@ -67,7 +70,7 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
   const page = hasPhone && hasSocial ? interpolate(frame, [half - 4, half + 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : hasSocial ? 1 : 0;
 
   // Shorts: উপরে, ছোট — নিচের ~২০% YouTube-এর লেখা/বোতামে ঢাকা পড়ে
-  const h = (vertical ? 104 : BAR_H) * u;
+  const h = (vertical ? V_BAR_H : BAR_H) * u;
   const nameBlock = (brand.name || brand.address) && (
     <div style={{ background: theme.color.accent, color: "#111", padding: `${12 * u}px ${28 * u}px`, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: h }}>
       {brand.name && <div style={{ fontSize: (vertical ? 34 : 40) * u, fontWeight: 700, lineHeight: 1.25, whiteSpace: "nowrap" }}>{brand.name}</div>}
@@ -136,7 +139,7 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
     <AbsoluteFill
       style={
         vertical
-          ? { justifyContent: "flex-start", alignItems: "center", padding: `${height * 0.085}px ${40 * u}px 0` }
+          ? { justifyContent: "flex-start", alignItems: "center", padding: `${height * V_BAR_TOP}px ${40 * u}px 0` }
           : { justifyContent: "flex-end", alignItems: "flex-start", padding: `0 0 ${BAR_MARGIN * u}px ${BAR_MARGIN * u}px` }
       }
     >
@@ -147,6 +150,17 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
 
 // Shorts-এ এই লেআউটগুলোতে উপরের অংশে মুখ/গ্রাফিক্স থাকে — বার লুকানো
 const VERTICAL_BUSY = ["split", "pip", "motion", "motion+aroll"];
+
+// খাড়া ফ্রেমে বার দেখানোর সময় এই শটের উপরের overlay গ্রাফিক্স বারের নিচে নামে (শটের Sequence-এর ভেতরে বসে)
+export const BarClear: React.FC<{ brand?: TimelineBrand; shot: TimelineShot; children: React.ReactNode }> = ({ brand, shot, children }) => {
+  const frame = useCurrentFrame();
+  const { fps, height } = useVideoConfig();
+  const u = useUnit();
+  const vertical = useIsVertical();
+  const ms = shot.startMs + (frame / fps) * 1000;
+  const clear = vertical && !VERTICAL_BUSY.includes(shot.layout) ? barProgress(brand, ms) * (height * V_BAR_TOP + (V_BAR_H + 24) * u) : 0;
+  return <TopClearContext.Provider value={clear}>{children}</TopClearContext.Provider>;
+};
 
 export const BrandLayer: React.FC<{ brand: TimelineBrand; shots: TimelineShot[] }> = ({ brand, shots }) => {
   const frame = useCurrentFrame();

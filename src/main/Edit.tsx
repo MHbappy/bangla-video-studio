@@ -4,13 +4,15 @@ import { BoxCaptions } from "../captions/BoxCaptions";
 import { ShortsCaptions } from "../captions/ShortsCaptions";
 import type { VideoProps } from "../data";
 import { Scene } from "../scenes";
+import { ShotLayoutContext } from "../scenes/common";
 import { SfxContext } from "../sfx";
-import type { Timeline, TimelineShot } from "../timeline-types";
+import { GFX_OVERLAY, type Timeline, type TimelineShot } from "../timeline-types";
 import type { CaptionLine } from "../types";
 import { ARollLayer } from "./ARollLayer";
-import { barProgress, barTop, BrandLayer } from "./Brand";
+import { BarClear, barProgress, barTop, BrandLayer } from "./Brand";
 import { BRoll } from "./BRoll";
 import { EndScreenBg } from "./EndScreen";
+import { mapPoint } from "./geometry";
 import { Music } from "./Music";
 
 const BIG_CHANGE = ["motion", "motion+aroll", "split", "pip", "endscreen"];
@@ -31,7 +33,7 @@ const AutoSfx: React.FC<{ shots: TimelineShot[]; sfx: NonNullable<Timeline["sfx"
               <Audio src={staticFile(sfx.whoosh)} volume={sfx.volume * 0.8} />
             </Sequence>
           );
-        if (s.layout === "aroll+gfx" && s.gfx && s.gfx.scene !== "BulletList")
+        if (GFX_OVERLAY.includes(s.layout) && s.gfx && s.gfx.scene !== "BulletList")
           return (
             <Sequence key={i} from={at + 3} durationInFrames={Math.round(fps * 0.3)} layout="none" name={`#${s.index} pop`}>
               <Audio src={staticFile(sfx.pop)} volume={sfx.volume * 0.7} />
@@ -62,10 +64,17 @@ const Captions: React.FC<{ lines: CaptionLine[]; timeline: Timeline }> = ({ line
 
 // Main (১৬:৯), Vertical (৯:১৬) আর Graphics (স্বচ্ছ) — তিনটাই এই একই এডিট থেকে
 export const Edit: React.FC<VideoProps & { transparent?: boolean }> = ({ project, lines = [], timeline, transparent }) => {
-  const { fps } = useVideoConfig();
+  const { fps, width: W, height: H } = useVideoConfig();
   if (!project || !timeline) return null;
   const f = (ms: number) => Math.round((ms / 1000) * fps);
   const sfxEnabled = timeline.sfx;
+  // Callout-এর x,y মূল ফ্রেমের জন্য লেখা — Shorts-এ ফুটেজ অন্যভাবে বসে, তাই একই জিনিসের উপর সরিয়ে নিই
+  // (জিনিসটা কাটা পড়ে গেলে তীর বাদ — ভুল জায়গা দেখানোর চেয়ে ভালো)
+  const placed = (s: TimelineShot) => {
+    if (!s.gfx || s.gfx.scene !== "Callout" || !GFX_OVERLAY.includes(s.layout)) return s.gfx;
+    const at = mapPoint(Number(s.gfx.x ?? 50), Number(s.gfx.y ?? 50), s, project, W, H, timeline.arollFocus);
+    return at ? { ...s.gfx, ...at } : undefined;
+  };
 
   return (
     <AbsoluteFill style={{ background: transparent ? undefined : "#000" }}>
@@ -74,6 +83,7 @@ export const Edit: React.FC<VideoProps & { transparent?: boolean }> = ({ project
       {timeline.shots.map((s) => {
         const from = f(s.startMs);
         const dur = Math.max(1, f(s.endMs) - from);
+        const gfx = placed(s);
         return (
           <React.Fragment key={s.index}>
             {s.layout === "endscreen" && (
@@ -86,12 +96,17 @@ export const Edit: React.FC<VideoProps & { transparent?: boolean }> = ({ project
                 <BRoll broll={s.broll} layout={s.layout} />
               </Sequence>
             )}
-            {s.gfx && (
-              <Sequence from={from} durationInFrames={dur} premountFor={fps} name={`#${s.index} ${s.gfx.scene}`}>
+            {gfx && (
+              <Sequence from={from} durationInFrames={dur} premountFor={fps} name={`#${s.index} ${gfx.scene}`}>
                 <SfxContext.Provider value={sfxEnabled && s.sfx ? sfxEnabled : null}>
-                  <AbsoluteFill style={{ zIndex: s.layout === "aroll+gfx" ? 40 : 20 }}>
-                    <Scene gfx={s.gfx} mode={s.layout === "aroll+gfx" ? "overlay" : "full"} />
-                  </AbsoluteFill>
+                  <ShotLayoutContext.Provider value={s.layout}>
+                    {/* overlay: A-roll, B-roll আর PiP বক্স — সবার উপরে; full (motion): B-roll-এর স্তরে */}
+                    <AbsoluteFill style={{ zIndex: GFX_OVERLAY.includes(s.layout) ? 40 : 20 }}>
+                      <BarClear brand={timeline.brand} shot={s}>
+                        <Scene gfx={gfx} mode={GFX_OVERLAY.includes(s.layout) ? "overlay" : "full"} />
+                      </BarClear>
+                    </AbsoluteFill>
+                  </ShotLayoutContext.Provider>
                 </SfxContext.Provider>
               </Sequence>
             )}
