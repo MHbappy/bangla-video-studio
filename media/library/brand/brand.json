@@ -1,16 +1,33 @@
 {
-  "name": "",
-  "address": "",
-  "phone": "",
-  "phoneLabel": "",
+  "name": "Mobile Shop",
+  "address": "Dhaka Mirpur",
+  "phone": "01718183924",
+  "phoneLabel": "eita kinte phone",
   "social": [
-    { "type": "facebook", "text": "" },
-    { "type": "whatsapp", "text": "" },
-    { "type": "youtube", "text": "" },
-    { "type": "web", "text": "" }
+    {
+      "type": "facebook",
+      "text": "www.facebook.com"
+    },
+    {
+      "type": "whatsapp",
+      "text": "01718183924"
+    },
+    {
+      "type": "youtube",
+      "text": ""
+    },
+    {
+      "type": "web",
+      "text": "upoharlab.com"
+    }
   ],
   "logoPosition": "top-right",
-  "logoSize": 80,
-  "logoOpacity": 0.9,
-  "contactBar": { "start": 4, "every": 30, "duration": 7, "atEnd": true }
+  "logoSize": 160,
+  "logoOpacity": 0.75,
+  "contactBar": {
+    "start": 4,
+    "every": 30,
+    "duration": 7,
+    "atEnd": true
+  }
 }
