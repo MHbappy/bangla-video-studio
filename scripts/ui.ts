@@ -168,6 +168,9 @@ const saveBrand = (body: Record<string, unknown>) => {
             always: bar?.always === true, // সময়ের ঘরগুলো রেখে দিই — "মাঝে মাঝে"-তে ফিরলে আগের মান থাকে
           },
     captionPosition: { horizontal: capXY("horizontal"), vertical: capXY("vertical") },
+    // ঘর না এলে আগেরটা থাকে
+    captions: typeof body.captions === "boolean" ? body.captions : (old.captions ?? true),
+    graphics: typeof body.graphics === "boolean" ? body.graphics : (old.graphics ?? true),
   };
   if (next.contactBar && !next.contactBar.always && (next.contactBar.every ?? 30) < (next.contactBar.duration ?? 7) + 2) throw new Error(`"কতক্ষণ পরপর" কমপক্ষে "কতক্ষণ থাকবে" + ২ সেকেন্ড হতে হবে`);
   writeJson(BRAND_JSON, next);

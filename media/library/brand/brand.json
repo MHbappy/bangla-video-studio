@@ -1,8 +1,8 @@
 {
   "name": "Mobile Shop",
-  "address": "Dhaka Mirpur",
+  "address": "",
   "phone": "01718183924",
-  "phoneLabel": "eita kinte phone",
+  "phoneLabel": "",
   "social": [
     {
       "type": "facebook",
@@ -38,7 +38,9 @@
     },
     "vertical": {
       "x": 50,
-      "y": 80
+      "y": 81
     }
-  }
+  },
+  "captions": true,
+  "graphics": false
 }

@@ -54,6 +54,9 @@ textarea { min-height: 110px; resize: vertical; }
 input[type=range] { width: 100%; accent-color: var(--accent); }
 .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; }
 .switch input { width: 20px; height: 20px; accent-color: var(--accent); }
+.toggles { display: flex; flex-direction: column; gap: 12px; }
+.toggles .switch small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.capctl.off { opacity: 0.4; pointer-events: none; }
 
 .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
 .drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
@@ -187,6 +190,16 @@ details summary { cursor: pointer; font-weight: 600; }
   <section id="tab-brand">
     <div class="cols">
       <div>
+        <div class="card">
+          <h2>ভিডিওতে কী থাকবে</h2>
+          <p class="hint">সব ভিডিওর জন্য। এক ভিডিওতে আলাদা চাইলে Claude-কে বলুন (<code>edit.json</code>-এ <code>captions</code> / <code>graphics</code>)।</p>
+          <div class="toggles">
+            <label class="switch"><input type="checkbox" id="showCaptions"> ক্যাপশন <small>কথার লেখা, নিচে</small></label>
+            <label class="switch"><input type="checkbox" id="showGraphics"> মোশন গ্রাফিক্স + সাউন্ড ইফেক্ট <small>টাইটেল, দাম, নামের কার্ড, তীর — আর whoosh/pop শব্দ</small></label>
+          </div>
+          <p class="pnote" id="showNote"></p>
+        </div>
+
         <div class="card">
           <h2>পরিচয়</h2>
           <p class="hint">যোগাযোগ বারে দেখাবে। যে ঘর ফাঁকা রাখবেন, সেটা ভিডিওতে আসবে না।</p>
@@ -370,6 +383,7 @@ const form = () => ({
   logoSize: Number($("#logoSize").value), logoOpacity: Number($("#logoOpacity").value),
   contactBar: barMode() === "off" ? false : { start: Number($("#barStart").value), every: Number($("#barEvery").value), duration: Number($("#barDuration").value), atEnd: $("#barAtEnd").checked, always: barMode() === "always" },
   captionPosition: { horizontal: { ...cap.horizontal }, vertical: { ...cap.vertical } },
+  captions: $("#showCaptions").checked, graphics: $("#showGraphics").checked,
 });
 const fillBrand = (b) => {
   for (const k of ["name", "address", "phone", "phoneLabel"]) $("#" + k).value = b[k] || "";
@@ -383,6 +397,8 @@ const fillBrand = (b) => {
   $("#barStart").value = d.start; $("#barEvery").value = d.every; $("#barDuration").value = d.duration; $("#barAtEnd").checked = d.atEnd !== false;
   cap = { horizontal: { ...CAP_DEFAULT.horizontal, ...b.captionPosition?.horizontal }, vertical: { ...CAP_DEFAULT.vertical, ...b.captionPosition?.vertical } };
   syncCap();
+  $("#showCaptions").checked = b.captions !== false;
+  $("#showGraphics").checked = b.graphics !== false;
   saved = JSON.stringify(form());
   refresh();
 };
@@ -407,6 +423,11 @@ const refresh = () => {
     timed: "নিচের সময় অনুযায়ী মাঝে মাঝে আসে।",
     always: "পুরো ভিডিও জুড়ে থাকে; ফোন আর সোশ্যাল পাতা ৫ সেকেন্ড পরপর বদলায়। ১৬:৯-এ ক্যাপশন সারাক্ষণ বারের উপরে থাকে।",
   }[barMode()];
+  $("#showNote").textContent = [
+    !f.captions && "ক্যাপশন বন্ধ — ভিডিওতে লেখা আসবে না (output/captions.srt তবু তৈরি হয়, YouTube-এ আলাদা দিতে পারবেন)।",
+    !f.graphics && "মোশন গ্রাফিক্স বন্ধ — পুরো-স্ক্রিন মোশন শটে A-roll দেখাবে, কোনো whoosh/pop নেই। লোগো আর যোগাযোগ বার থাকবে।",
+  ].filter(Boolean).join(" ") || "দুটোই চালু।";
+  $(".capctl").classList.toggle("off", !f.captions);
   const dirty = JSON.stringify(f) !== saved;
   $("#savebar").classList.toggle("on", dirty);
   drawPreview(f);
@@ -495,6 +516,7 @@ const drawPreview = (f) => {
 
   // ক্যাপশনের নমুনা: x = মাঝখান, y = নিচের প্রান্ত (src/captions/position.ts-এর captionBox)
   const c = cap[orient()], capEl = $("#pCap");
+  capEl.style.display = f.captions ? "" : "none";
   const cw = F.w * Math.min(vertical ? 0.86 : 0.8, (2 * Math.min(c.x, 100 - c.x)) / 100 - 0.04);
   let cb = F.h * (1 - c.y / 100);
   // ১৬:৯: বার দেখানোর সময় ক্যাপশন বারের উপরে ওঠে (Edit.tsx-এর lift)
@@ -508,7 +530,7 @@ const drawPreview = (f) => {
   $("#capFor").textContent = vertical ? "— ৯:১৬ (Shorts / খাড়া ভিডিও)" : "— ১৬:৯";
   $("#capXV").textContent = `মাঝখান বাঁ থেকে ${c.x}%`;
   $("#capYV").textContent = `নিচের প্রান্ত উপর থেকে ${c.y}%`;
-  if (lifted) $("#pNote").textContent += " বার দেখানোর সময় ক্যাপশন বারের উপরে ওঠে; বার সরলে নিজের জায়গায় নামে।";
+  if (lifted && f.captions) $("#pNote").textContent += " বার দেখানোর সময় ক্যাপশন বারের উপরে ওঠে; বার সরলে নিজের জায়গায় নামে।";
 
   // Shorts: লোগো উপরের কোণে থাকলে বার তার পাশে, একই লাইনে (Brand.tsx-এর besideLogo)
   if (vertical && S?.logo && f.logoPosition.startsWith("top")) {

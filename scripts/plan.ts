@@ -55,6 +55,15 @@ const brollMap = new Map(assets.broll.map((a) => [a.name, a]));
 const musicMap = new Map(assets.music.map((a) => [a.name, a]));
 const sec = (ms: number) => (ms / 1000).toFixed(1);
 const formatWarned = new Set<string>(); // ফরম্যাটের সতর্কতা প্রতি ক্লিপে একবার
+// brand.json — সব ভিডিওর ডিফল্ট (JSON ভুল নিচে ব্র্যান্ড অংশে ধরা পড়ে)
+let libBrand: BrandFile = {};
+try {
+  const f = path.join(LIBRARY, "brand", "brand.json");
+  if (existsSync(f)) libBrand = readJson<BrandFile>(f);
+} catch {}
+// ক্যাপশন / মোশন গ্রাফিক্স চালু-বন্ধ: ডিফল্ট চালু ← brand.json (রিসোর্স ম্যানেজার) ← edit.json
+const showCaptions = edit.captions ?? libBrand.captions ?? true;
+const showGraphics = edit.graphics ?? libBrand.graphics ?? true;
 
 // রং: প্রতিটা মান 0.5–1.5 (1 = যেমন আছে)
 const checkGrade = (g: EditFile["brollGrade"], tag: string) => {
@@ -209,6 +218,16 @@ if (es && !errors.length) {
   }
 }
 
+// YouTube চ্যাপ্টার: ChapterCard শটগুলো থেকে (গ্রাফিক্স বন্ধ থাকলেও chapters.txt থাকে)
+const chapters = shots.filter((s) => s.gfx?.scene === "ChapterCard").map((s) => ({ ms: s.startMs, title: String(s.gfx?.title ?? "") }));
+
+// মোশন গ্রাফিক্স বন্ধ: সব gfx বাদ, পুরো-স্ক্রিন মোশন শট A-roll হয়ে যায়
+if (!showGraphics)
+  for (const s of shots) {
+    delete s.gfx;
+    if (NEEDS_GFX.includes(s.layout)) s.layout = "aroll";
+  }
+
 // অটো-পাঞ্চ: পরপর দুটো পূর্ণ-A-roll শটে পালা করে ক্রপ বদল — জাম্প-কাট/একঘেয়েমি ঢাকে
 if (edit.autoPunch ?? true) {
   let alt = false;
@@ -248,19 +267,13 @@ if (edit.music) {
   });
 }
 
-const captionStyle = edit.captionStyle ?? "box";
+const captionStyle = showCaptions ? (edit.captionStyle ?? "box") : "none";
 if (!CAPTION_STYLES.includes(captionStyle)) errors.push(`captionStyle হবে ${CAPTION_STYLES.join(" | ")}`);
 // ক্যাপশনের জায়গা: ডিফল্ট ← brand.json-এর captionPosition (রিসোর্স ম্যানেজার) ← edit.json-এর captionPosition
 if ((edit as { captionY?: unknown }).captionY !== undefined) errors.push(`captionY এখন নেই — লিখুন "captionPosition": { "vertical": { "y": ${(edit as { captionY?: unknown }).captionY} } }`);
 const captionPosition: CaptionPosition = { horizontal: { ...CAPTION_POSITION.horizontal }, vertical: { ...CAPTION_POSITION.vertical } };
 {
-  let lib: CaptionPositionFile | undefined;
-  try {
-    const f = path.join(LIBRARY, "brand", "brand.json");
-    if (existsSync(f)) lib = readJson<BrandFile>(f).captionPosition;
-  } catch {
-    // brand.json-এর JSON ভুল নিচে ব্র্যান্ড অংশে ধরা পড়ে
-  }
+  const lib: CaptionPositionFile | undefined = libBrand.captionPosition;
   for (const [src, pos] of [["brand.json", lib], ["edit.json", edit.captionPosition]] as const) {
     if (pos === undefined) continue;
     if (!pos || typeof pos !== "object") {
@@ -279,7 +292,7 @@ const captionPosition: CaptionPosition = { horizontal: { ...CAPTION_POSITION.hor
 }
 
 let sfx: Timeline["sfx"] = null;
-if (edit.sfx !== false) {
+if (edit.sfx !== false && showGraphics) {
   ensureSfx();
   const volume = typeof edit.sfx === "object" ? (edit.sfx.volume ?? 0.35) : 0.35;
   sfx = { volume, whoosh: webPath(path.join(LIBRARY, "sfx", "whoosh.wav")), pop: webPath(path.join(LIBRARY, "sfx", "pop.wav")) };
@@ -384,7 +397,6 @@ const hms = (ms: number) => {
   const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
   return (h ? `${h}:${String(m).padStart(2, "0")}` : `${m}`) + `:${String(s).padStart(2, "0")}`;
 };
-const chapters = shots.filter((s) => s.gfx?.scene === "ChapterCard").map((s) => ({ ms: s.startMs, title: String(s.gfx?.title ?? "") }));
 if (chapters.length) {
   const all = chapters[0].ms < 1000 ? chapters : [{ ms: 0, title: "শুরু" }, ...chapters];
   writeFileSync(vpath(slug, "output", "chapters.txt"), all.map((c) => `${hms(c.ms)} ${c.title}`).join("\n") + "\n", "utf8");
@@ -401,5 +413,7 @@ if (brand)
   console.log(
     `\n  ব্র্যান্ড: ${brand.logo ? `লোগো (${brand.logo.position})` : "লোগো নেই"} · যোগাযোগ বার ${brand.bars.length}বার${brand.bars.length ? ` (${brand.bars.map((x) => `${sec(x.startMs)}s`).join(", ")})` : ""}`,
   );
+if (!showCaptions || !showGraphics)
+  console.log(`\n  বন্ধ: ${[!showCaptions && "ক্যাপশন", !showGraphics && "মোশন গ্রাফিক্স + সাউন্ড ইফেক্ট"].filter(Boolean).join(" · ")}  (রিসোর্স ম্যানেজার → ব্র্যান্ড, বা edit.json-এ captions / graphics)`);
 console.log(`\n✓ ${shots.length}টা শট → timeline.json${chapters.length ? " · output/chapters.txt" : ""}`);
 console.log(`প্রিভিউ: npm run studio   এক শটের ছবি: npm run frame -- ${slug} --shot N   রেন্ডার: npm run render  (Shorts: --format shorts --from 12 --to 58)`);

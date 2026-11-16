@@ -112,6 +112,8 @@ Shot options: `broll: "name"` or `{ "file", "from": sec, "move": "slowZoomIn|slo
 
 **Ending:** for YouTube uploads add `"endScreen": 12` (5–20 s, or `{ "seconds": 12, "text": "দেখার জন্য ধন্যবাদ" }`): the last seconds become the end-screen layout, which leaves room for YouTube's end-screen elements, and the contact bar shows there. Put the CTA shot just before it. Skip it when the user says the video isn't for YouTube.
 
+**On/off:** the user can turn off captions (`brand.json` / `edit.json` `"captions": false`) or all motion-graphics text plus sound effects (`"graphics": false` — `npm run plan` drops every `gfx`, turns `motion`/`motion+aroll`/`aroll+gfx` shots into plain `aroll`, and mutes SFX; logo and contact bar stay). Still write the full plan with `gfx` — it comes back when they turn it on. If graphics are off, put key facts (price, offer) in B-roll choices rather than relying on cards.
+
 **Captions:** `captionEmphasis` (default on) colours numbers, prices and Latin-script names (6000W, ৳১২,৫০০, ESP32) in the brand colour — write them that way in the transcript. `captionStyle` is `"box"` for tutorials (most readable) or `"highlight"` for energetic videos. Use `captions: false` only where on-screen text would clash. Caption placement defaults come from the resource manager (`brand.json` → `captionPosition`, separately for `horizontal` 16:9 frames and `vertical` Shorts/portrait footage; `x` = centre from the left %, `y` = bottom edge from the top %). Override per video only when the footage needs it — e.g. product shown in the lower half of a vertical frame: `"captionPosition": { "vertical": { "y": 50 } }` — and check a frame (in vertical frames a `LowerThird` sits at 50–58%).
 
 ## Product marketing videos

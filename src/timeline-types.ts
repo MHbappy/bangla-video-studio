@@ -42,6 +42,9 @@ export type BrandFile = {
   // সেকেন্ড; always = পুরো ভিডিও জুড়ে (মোশন/PiP শট বাদে) — তখন start/every/duration/atEnd খাটে না
   contactBar?: false | { start?: number; every?: number; duration?: number; atEnd?: boolean; always?: boolean };
   captionPosition?: CaptionPositionFile; // সব ভিডিওর ডিফল্ট ক্যাপশনের জায়গা (রিসোর্স ম্যানেজার থেকে); এক ভিডিওতে বদল → edit.json-এর captionPosition
+  // ভিডিওতে কী থাকবে (রিসোর্স ম্যানেজার থেকে; ডিফল্ট true) — এক ভিডিওতে বদল → edit.json-এর captions / graphics
+  captions?: boolean; // false = ক্যাপশন নেই
+  graphics?: boolean; // false = মোশন গ্রাফিক্সের লেখা আর সাউন্ড ইফেক্ট নেই (লোগো/যোগাযোগ বার থাকে)
 };
 
 export type TimelineBrand = {
@@ -93,6 +96,8 @@ export type MusicSection = { path: string; startMs: number; endMs: number; volum
 export type EditFile = {
   arollFocus?: string; // মুখ কোথায় (CSS object-position), যেমন "50% 35%"
   captionStyle?: CaptionStyle; // ডিফল্ট "box"
+  captions?: boolean; // false = এই ভিডিওতে ক্যাপশন নেই (brand.json-এর captions-এর উপর)
+  graphics?: boolean; // false = মোশন গ্রাফিক্সের লেখা + সাউন্ড ইফেক্ট নেই; motion শট A-roll হয়ে যায় (brand.json-এর graphics-এর উপর)
   // ক্যাপশনের জায়গা, শুধু এই ভিডিওতে (brand.json-এর captionPosition-এর উপর): { "vertical": { "y": 50 } } — পণ্য নিচে থাকলে উপরে তুলতে
   captionPosition?: CaptionPositionFile;
   autoPunch?: boolean; // পরপর aroll শটে পালা করে 1.0 / 1.1 পাঞ্চ (ডিফল্ট true)

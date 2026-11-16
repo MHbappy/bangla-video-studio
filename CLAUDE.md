@@ -27,6 +27,7 @@
 
 B-roll/মিউজিকের নাম আগে ভিডিওর ফোল্ডারে, না পেলে `media/library/`-এ খোঁজা হয়। SFX: `media/library/sfx/whoosh.wav`, `pop.wav`।
 ব্র্যান্ড (লোগো, যোগাযোগ বার, QR): `media/library/brand/brand.json` + ছবি; এক ভিডিওতে বদল → `edit.json`-এ `brand`। কোড: `src/main/Brand.tsx`।
+ক্যাপশন / মোশন গ্রাফিক্স+SFX চালু-বন্ধ: রিসোর্স ম্যানেজার → `brand.json`-এর `captions` / `graphics`; এক ভিডিওতে → `edit.json`-এ একই নাম (`scripts/plan.ts` বন্ধ হলে gfx বাদ দেয়, motion শট → aroll)।
 ক্যাপশনের জায়গা (x, y; ১৬:৯ ও খাড়া আলাদা): রিসোর্স ম্যানেজার → `brand.json`-এর `captionPosition`; এক ভিডিওতে বদল → `edit.json`-এ `captionPosition`। কোড: `src/captions/position.ts`।
 
 ## কোড মানচিত্র
