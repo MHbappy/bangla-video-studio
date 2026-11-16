@@ -4,12 +4,12 @@
 **পুনর্ব্যবহারযোগ্য টেমপ্লেট:** প্রতিটা ভিডিওতে শুধু রিসোর্স বদলান। **শুধু Node.js লাগে** — Mac, Windows, Linux।
 
 ## নতুন মেশিনে একবার
-দরকার: [Node.js](https://nodejs.org) ২০ বা নতুন (LTS) আর Google Chrome/Edge। আর কিছু না — ffmpeg, ফন্ট, মডেল সব নিজে থেকে আসে।
+দরকার: [Node.js](https://nodejs.org) ২০ বা নতুন (LTS) আর Google Chrome/Edge। আর কিছু না — ffmpeg, ফন্ট সব নিজে থেকে আসে।
 ```bash
 git clone <আপনার-repo-লিংক> bangla-video-studio
 cd bangla-video-studio
 npm install
-npm run setup      # Whisper মডেল (~১.১GB) + ডিফল্ট সাউন্ড ইফেক্ট + যাচাই (ffmpeg, ব্রাউজার)
+npm run setup      # ডিফল্ট সাউন্ড ইফেক্ট + যাচাই (ffmpeg, ব্রাউজার)
 npm run demo       # (ঐচ্ছিক) নিজের ফুটেজ ছাড়া পুরো সিস্টেম টেস্ট
 ```
 তারপর এই ফোল্ডারে Claude Code খুলুন — নির্দেশনা (`CLAUDE.md`) আর Skills (`.claude/skills/`) সাথেই আছে।
@@ -21,9 +21,9 @@ npm run ui         # ব্রাউজারে: ব্র্যান্ড �
 
 ## প্রতিটা ভিডিও
 ```bash
-npm run new -- gas-detector ~/Desktop/gas-final.mp4   # ফোল্ডার + ট্রান্সক্রাইব
+npm run new -- gas-detector ~/Desktop/gas-final.mp4 ~/Desktop/gas.srt   # ফোল্ডার + ফুটেজ + লেখা (SRT/VTT, সময়সহ)
 #   B-roll রাখুন: media/videos/gas-detector/broll/  (বা শেয়ার্ড media/library/broll/)
-# Claude: "captions ঠিক করো"
+# Claude: "captions ঠিক করো" (দেওয়া লেখার বানান দেখে)
 npm run finalize
 # Claude: "edit plan বানাও"
 npm run plan
@@ -49,8 +49,8 @@ npm run render -- --format shorts --from 65 --to 120   # একই এডিট 
 | কোড, Skills, গাইড, `glossary.txt` | ✓ | `git pull` |
 | ব্র্যান্ড (`brand.json`, লোগো, QR), SFX, লাইব্রেরির মিউজিক/B-roll | ✓ | `git pull` — প্রতিটা ফাইল ১০০MB-র নিচে রাখুন (GitHub-এর সীমা); বড় ক্লিপ হাতে কপি করুন |
 | প্রতিটা ভিডিও (`media/videos/<নাম>/` — ফুটেজ, প্ল্যান, আউটপুট) | ✗ | পুরো ফোল্ডারটা কপি করুন (পেনড্রাইভ/ড্রাইভ) — ওই কম্পিউটারে সরাসরি `npm run studio -- <নাম>` চলবে |
-| Whisper মডেল (`models/`), `node_modules/` | ✗ | `npm install` + `npm run setup` (বা `models/` কপি → ইন্টারনেট লাগবে না) |
-| এই কম্পিউটারের সেটিং (`.env`) | ✗ | `.env.example` কপি করে `.env` বানান (GPU, মান ইত্যাদি) |
+| `node_modules/` | ✗ | `npm install` + `npm run setup` |
+| এই কম্পিউটারের সেটিং (`.env`) | ✗ | `.env.example` কপি করে `.env` বানান (পোর্ট, ব্রাউজার) |
 
 লোগো/ফোন নম্বর সবার সামনে দিতে না চাইলে GitHub-এ repo **Private** রাখুন।
 **Windows:** PowerShell, cmd, Git Bash — সবখানে একই কমান্ড। পথে ফাঁকা থাকলে উদ্ধৃতি দিন: `npm run new -- laser "D:\My Videos\laser cut.mp4"`।

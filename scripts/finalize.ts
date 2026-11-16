@@ -1,5 +1,5 @@
 // npm run finalize -- [slug]
-// transcript.json (Claude-এর ঠিক করা) → যাচাই → captions.json + captions-index.txt + output/captions.srt
+// transcript.json (Claude-এর ঠিক করা; না থাকলে work/raw.json = দেওয়া SRT/VTT) → যাচাই → captions.json + captions-index.txt + output/captions.srt
 import { existsSync, writeFileSync } from "node:fs";
 import { MAX_CAPTION_CHARS } from "./config";
 import { type CaptionLine, readJson, type Segment, splitSegment, toSrt, writeJson } from "./lib";
@@ -10,10 +10,10 @@ const corrected = vpath(slug, "transcript.json");
 const raw = vpath(slug, "work", "raw.json");
 const src = existsSync(corrected) ? corrected : raw;
 if (!existsSync(src)) {
-  console.error(`✗ আগে npm run transcribe -- ${slug}`);
+  console.error(`✗ আগে লেখা (SRT/VTT) দিন: npm run import -- ${slug} <ফাইল.srt>`);
   process.exit(1);
 }
-if (src === raw) console.warn("⚠ transcript.json নেই — বানান-ঠিক ছাড়াই raw ট্রান্সক্রিপ্ট ব্যবহার হচ্ছে");
+if (src === raw) console.warn("⚠ transcript.json নেই — দেওয়া লেখা হুবহু ব্যবহার হচ্ছে (বানান দেখা হয়নি)");
 
 const project = readJson<{ durationInFrames: number; fps: number }>(vpath(slug, "project.json"));
 const maxMs = (project.durationInFrames / project.fps) * 1000;

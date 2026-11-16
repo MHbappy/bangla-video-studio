@@ -29,5 +29,15 @@
     "every": 30,
     "duration": 7,
     "atEnd": true
+  },
+  "captionPosition": {
+    "horizontal": {
+      "x": 50,
+      "y": 97
+    },
+    "vertical": {
+      "x": 50,
+      "y": 80
+    }
   }
 }

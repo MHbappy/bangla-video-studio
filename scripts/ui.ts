@@ -6,10 +6,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import type { BrandFile } from "../src/timeline-types";
+import { type BrandFile, CAPTION_POSITION, CAPTION_RANGE } from "../src/timeline-types";
 import { readJson, writeJson } from "./lib";
 import { probeVideo } from "./media";
-import { isSlug, LIBRARY, MEDIA, opt, setCurrent, VIDEOS, vpath } from "./paths";
+import { binFor, isSlug, LIBRARY, MEDIA, opt, retire, setCurrent, VIDEOS, vpath } from "./paths";
+import { importSubtitles, SUBTITLE } from "./subtitles";
 
 const require = createRequire(import.meta.url);
 const PORT = Number(opt("port") ?? process.env.PORT ?? 4321);
@@ -17,7 +18,6 @@ const BRAND_DIR = path.join(LIBRARY, "brand");
 const BRAND_JSON = path.join(BRAND_DIR, "brand.json");
 const FONT_DIR = path.join(path.dirname(require.resolve("@fontsource/hind-siliguri/package.json")), "files");
 const UPLOADS = path.join(MEDIA, ".uploads");
-const BIN = path.join(MEDIA, ".removed"); // সরানো মিউজিক/B-roll — মোছা হয় না, এখানে থাকে
 
 const IMAGE = /\.(png|jpe?g|webp|svg)$/i;
 const VIDEO = /\.(mp4|mov|m4v|webm|mkv)$/i;
@@ -45,18 +45,6 @@ const listFiles = (dir: string, re: RegExp) =>
 
 const findBrandImage = (stem: string) => listFiles(BRAND_DIR, IMAGE).find((f) => path.parse(f.name).name === stem);
 
-// ফাইল কখনো মোছা হয় না — bin ফোল্ডারে <নাম>-<সময়>.<ext> হয়ে সরে যায় (দরকার হলে ফেরত আনা যায়)
-const stamp = () => new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
-const retire = (file: string, bin: string) => {
-  mkdirSync(bin, { recursive: true });
-  const { name, ext } = path.parse(file);
-  let dest = path.join(bin, `${name}-${stamp()}${ext}`);
-  for (let i = 2; existsSync(dest); i++) dest = path.join(bin, `${name}-${stamp()}-${i}${ext}`);
-  renameSync(file, dest);
-};
-// media/library/music → media/.removed/library/music (assets স্ক্যানের বাইরে)
-const binFor = (dir: string) => path.join(BIN, path.relative(MEDIA, dir));
-
 // logo.* / qr.* → brand/.removed/; কয়টা সরল তা ফেরত দেয়
 const retireBrandImage = (stem: string) => {
   const files = listFiles(BRAND_DIR, IMAGE).filter((f) => path.parse(f.name).name === stem);
@@ -64,8 +52,8 @@ const retireBrandImage = (stem: string) => {
   return files.length;
 };
 
-// ---- পেছনের কাজ (npm run new / transcribe) — লগ মেমরিতে, পেজ প্রতি ২ সেকেন্ডে দেখে ----
-// একটার পর একটা চলে: একসাথে দুটো Whisper চললে মেমরি আর গতি দুটোই যায়
+// ---- পেছনের কাজ (npm run new: ফুটেজ কপি + যাচাই) — লগ মেমরিতে, পেজ প্রতি ২ সেকেন্ডে দেখে ----
+// একটার পর একটা চলে: একসাথে কয়েকটা বড় ফাইল কপি হলে ডিস্ক ধীর হয়
 type Job = { slug: string; log: string; done: boolean; ok: boolean; waiting: boolean };
 const jobs = new Map<string, Job>();
 const busy = (slug: string) => Boolean(jobs.get(slug) && !jobs.get(slug)!.done);
@@ -110,7 +98,7 @@ const videoState = (slug: string) => {
   const project = readProject(slug);
   const steps = {
     aroll: Boolean(project && has(project.aroll)),
-    transcribed: has("work", "raw.json"),
+    subtitles: has("work", "raw.json") || has("transcript.json"),
     transcript: has("transcript.json"),
     captions: has("captions.json"),
     edit: has("edit.json"),
@@ -122,6 +110,8 @@ const videoState = (slug: string) => {
     durationSec: project ? project.durationInFrames / project.fps : null,
     size: project ? `${project.width}×${project.height}` : null,
     steps,
+    // এখনকার ফুটেজ (দেখা/বদলানো/সরানোর জন্য)
+    arollFile: project && has(project.aroll) ? { name: project.aroll, size: statSync(vpath(slug, project.aroll)).size, url: `/media/${path.relative(MEDIA, vpath(slug, project.aroll)).split(path.sep).join("/")}` } : null,
     notes: has("notes.md") ? readFileSync(vpath(slug, "notes.md"), "utf8") : "",
     broll: listFiles(vpath(slug, "broll"), BROLL),
     music: listFiles(vpath(slug, "music"), AUDIO),
@@ -148,6 +138,12 @@ const saveBrand = (body: Record<string, unknown>) => {
   const num = (v: unknown, lo: number, hi: number, d: number) => (Number.isFinite(Number(v)) ? Math.min(hi, Math.max(lo, Number(v))) : d);
   const old = existsSync(BRAND_JSON) ? readJson<BrandFile>(BRAND_JSON) : {};
   const bar = body.contactBar as Record<string, unknown> | false;
+  // ক্যাপশনের জায়গা: ঘর না এলে আগেরটা (বা ডিফল্ট) থাকে, সীমার বাইরে গেলে সীমায় আটকায়
+  const cap = (body.captionPosition ?? {}) as Record<string, Record<string, unknown> | undefined>;
+  const capXY = (o: "horizontal" | "vertical") => ({
+    x: num(cap[o]?.x, CAPTION_RANGE.x[0], CAPTION_RANGE.x[1], old.captionPosition?.[o]?.x ?? CAPTION_POSITION[o].x),
+    y: num(cap[o]?.y, CAPTION_RANGE[o][0], CAPTION_RANGE[o][1], old.captionPosition?.[o]?.y ?? CAPTION_POSITION[o].y),
+  });
   const next: BrandFile = {
     ...old,
     name: str(body.name),
@@ -165,6 +161,7 @@ const saveBrand = (body: Record<string, unknown>) => {
       bar === false
         ? false
         : { start: num(bar?.start, 0, 3600, 4), every: num(bar?.every, 4, 3600, 30), duration: num(bar?.duration, 2, 60, 7), atEnd: bar?.atEnd !== false },
+    captionPosition: { horizontal: capXY("horizontal"), vertical: capXY("vertical") },
   };
   if (next.contactBar && (next.contactBar.every ?? 30) < (next.contactBar.duration ?? 7) + 2) throw new Error(`"কতক্ষণ পরপর" কমপক্ষে "কতক্ষণ থাকবে" + ২ সেকেন্ড হতে হবে`);
   writeJson(BRAND_JSON, next);
@@ -308,7 +305,7 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { saved: path.relative(".", dest), state: state() });
     }
 
-    // নতুন ভিডিও: ফুটেজ আপলোড → npm run new (ট্রান্সক্রিপশনসহ, পেছনে চলে)
+    // নতুন ভিডিও: ফুটেজ আপলোড → npm run new (পেছনে চলে); লেখা (SRT/VTT) পরে /api/subtitles দিয়ে
     if (req.method === "POST" && url.pathname === "/api/new") {
       const slug = q("slug");
       const name = cleanName(q("name"));
@@ -323,8 +320,8 @@ const server = createServer(async (req, res) => {
       return send(res, 200, state());
     }
 
-    // হারানো ফুটেজ আবার দেওয়া: ভিডিওর ফোল্ডার আছে কিন্তু aroll নেই (যেমন অন্য কম্পিউটার থেকে বড় ফাইল ছাড়া কপি)
-    // ট্রান্সক্রিপ্ট আগে থেকে থাকলে শুধু একই দৈর্ঘ্যের ফুটেজ নেয়; না থাকলে ট্রান্সক্রাইব শুরু করে
+    // ফুটেজ দেওয়া/বদলানো: নেই হলে নতুন করে, থাকলে পুরনোটা media/.removed/-এ সরে নতুনটা বসে
+    // লেখা আগে থেকে থাকলে একই দৈর্ঘ্য (একই কাট) চাই; newcut=1 হলে নতুন কাট — পুরনো লেখা/ক্যাপশন সরে যায়
     if (req.method === "POST" && url.pathname === "/api/aroll") {
       const slug = q("slug");
       const name = cleanName(q("name"));
@@ -333,7 +330,6 @@ const server = createServer(async (req, res) => {
       if (!VIDEO.test(name)) throw new Error(`ভিডিও ফাইল দিন (${extList(VIDEO)})`);
       const project = readProject(slug);
       if (!project) throw new Error(`"${slug}"-এর project.json পড়া যায়নি`);
-      if (existsSync(vpath(slug, project.aroll))) throw new Error("এই ভিডিওর ফুটেজ আগে থেকেই আছে");
       const file = `aroll${path.extname(name).toLowerCase()}`;
       const tmp = vpath(slug, `.upload-${file}`);
       await receive(req, tmp);
@@ -346,21 +342,65 @@ const server = createServer(async (req, res) => {
       }
       const hasText = existsSync(vpath(slug, "work", "raw.json")) || existsSync(vpath(slug, "transcript.json"));
       const was = project.durationInFrames / project.fps;
-      if (hasText && Math.abs(info.durationSec - was) > 0.5) {
+      const newCut = hasText && Math.abs(info.durationSec - was) > 0.5;
+      if (newCut && q("newcut") !== "1") {
         rmSync(tmp, { force: true });
-        throw new Error(`এই ফুটেজ ${info.durationSec.toFixed(1)} সেকেন্ডের, আগেরটা ছিল ${was.toFixed(1)} — ক্যাপশনের সময় মিলবে না। অন্য কাট হলে নতুন নামে নতুন ভিডিও হিসেবে দিন।`);
+        throw new Error(`এই ফুটেজ ${info.durationSec.toFixed(1)} সেকেন্ডের, আগেরটা ছিল ${was.toFixed(1)} — লেখার সময় মিলবে না।`);
       }
+      const warns: string[] = [];
+      if (info.warn) warns.push(info.warn);
+      // নতুন কাট: এই কাটের সাথে না মেলা লেখা, ক্যাপশন আর যাচাই করা টাইমলাইন সরে যায় (edit.json থাকে)
+      if (newCut) {
+        const stale = [["work", "raw.json"], ["work", "source.srt"], ["work", "source.vtt"], ["transcript.json"], ["captions.json"], ["captions-index.txt"], ["timeline.json"]];
+        for (const p of stale) if (existsSync(vpath(slug, ...p))) retire(vpath(slug, ...p), binFor(path.dirname(vpath(slug, ...p))));
+        warns.push("নতুন কাট — আগের লেখা ও ক্যাপশন media/.removed/-এ সরেছে; এই কাটের SRT/VTT দিন" + (existsSync(vpath(slug, "edit.json")) ? ", তারপর Claude-কে দিয়ে edit plan আবার করান" : ""));
+      } else if (hasText && existsSync(vpath(slug, "timeline.json")) && info.fps !== project.fps) {
+        warns.push(`ফ্রেমরেট বদলেছে (${project.fps} → ${info.fps}) — npm run plan -- ${slug} আবার চালান`);
+      }
+      if (existsSync(vpath(slug, project.aroll))) retire(vpath(slug, project.aroll), binFor(vpath(slug)));
       renameSync(tmp, vpath(slug, file));
-      writeJson(vpath(slug, "project.json"), { ...project, aroll: file, width: info.width, height: info.height, fps: info.fps, durationInFrames: Math.ceil(info.durationSec * info.fps) });
-      const warn = [info.warn, hasText && existsSync(vpath(slug, "timeline.json")) && info.fps !== project.fps && `ফ্রেমরেট বদলেছে (${project.fps} → ${info.fps}) — npm run plan -- ${slug} আবার চালান`].filter(Boolean).join(" · ");
-      if (!hasText) startJob(slug, "transcribe.ts", []);
-      return send(res, 200, { saved: path.relative(".", vpath(slug, file)), warn, state: state() });
+      writeJson(vpath(slug, "project.json"), { ...project, source: name, aroll: file, width: info.width, height: info.height, fps: info.fps, durationInFrames: Math.ceil(info.durationSec * info.fps) });
+      return send(res, 200, { saved: path.relative(".", vpath(slug, file)), warn: warns.join(" · "), state: state() });
+    }
+
+    // লেখা (SRT/VTT, সময়সহ): work/source.* + work/raw.json; আগের লেখা থাকলে media/.removed/-এ সরে
+    if (req.method === "POST" && url.pathname === "/api/subtitles") {
+      const slug = q("slug");
+      const name = cleanName(q("name"));
+      needVideo(slug);
+      if (busy(slug)) throw new Error(`"${slug}" এখনো প্রসেস হচ্ছে`);
+      if (!SUBTITLE.test(name)) throw new Error("SRT বা VTT ফাইল দিন (.srt / .vtt)");
+      const tmp = vpath(slug, "work", `.upload${path.extname(name).toLowerCase()}`);
+      mkdirSync(path.dirname(tmp), { recursive: true });
+      await receive(req, tmp);
+      try {
+        const { count, notes } = importSubtitles(slug, tmp, name);
+        return send(res, 200, { saved: `${count}টা লাইন → ${path.relative(".", vpath(slug, "work", "raw.json"))}`, warn: notes.join(" · "), state: state() });
+      } finally {
+        rmSync(tmp, { force: true });
+      }
     }
 
     // সরানো: মুছে ফেলা নয় — লোগো/QR → brand/.removed/, মিউজিক/B-roll → media/.removed/ (দরকার হলে ফেরত আনা যায়)
     if (req.method === "POST" && url.pathname === "/api/remove") {
       const kind = q("kind");
-      if (kind === "logo" || kind === "qr") {
+      if (kind === "aroll" || kind === "video") {
+        const slug = q("slug");
+        needVideo(slug);
+        if (busy(slug)) throw new Error(`"${slug}" এখনো প্রসেস হচ্ছে`);
+        if (kind === "aroll") {
+          // শুধু ফুটেজ — লেখা, নোট, B-roll, প্ল্যান সব থাকে; কার্ডে "ফুটেজ আবার দিন" আসে
+          const project = readProject(slug);
+          if (!project || !existsSync(vpath(slug, project.aroll))) throw new Error("এই ভিডিওর ফুটেজ নেই");
+          retire(vpath(slug, project.aroll), binFor(vpath(slug)));
+        } else {
+          // পুরো ভিডিও ফোল্ডার → media/.removed/videos/<নাম>-<সময়>/
+          retire(vpath(slug), binFor(VIDEOS));
+          jobs.delete(slug);
+          const cur = path.join(MEDIA, ".current");
+          if (existsSync(cur) && readFileSync(cur, "utf8").trim() === slug) rmSync(cur);
+        }
+      } else if (kind === "logo" || kind === "qr") {
         if (!retireBrandImage(kind)) throw new Error(`${kind === "logo" ? "লোগো" : "QR"} নেই`);
         if (existsSync(BRAND_JSON)) {
           const b = readJson<BrandFile>(BRAND_JSON);

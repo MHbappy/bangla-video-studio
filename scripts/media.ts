@@ -1,6 +1,5 @@
 // Remotion-এর সাথে আসা ffmpeg/ffprobe ব্যবহার — আলাদা ইনস্টল লাগে না (Mac/Windows/Linux)
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -45,25 +44,6 @@ export const probeVideo = (file: string): VideoInfo => {
   const fps = Math.round((n / (d || 1)) * 100) / 100 || 30;
   const [width, height] = shownSize(v);
   return { width, height, fps, durationSec: Number(p.format.duration), codec: v.codec_name, warn: formatWarning(v) };
-};
-
-// 16kHz মোনো WAV বানিয়ে Float32Array হিসেবে ফেরত (Whisper-এর ইনপুট)
-export const extractAudio = (file: string, wavOut: string): Float32Array => {
-  run("ffmpeg", ["-y", "-v", "error", "-i", file, "-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", wavOut]);
-  const buf = readFileSync(wavOut);
-  let off = 12;
-  while (off + 8 <= buf.length) {
-    const id = buf.toString("ascii", off, off + 4);
-    const size = buf.readUInt32LE(off + 4);
-    if (id === "data") {
-      const end = Math.min(buf.length, off + 8 + size);
-      const samples = new Float32Array((end - off - 8) >> 1);
-      for (let i = 0; i < samples.length; i++) samples[i] = buf.readInt16LE(off + 8 + i * 2) / 32768;
-      return samples;
-    }
-    off += 8 + size + (size & 1);
-  }
-  throw new Error("WAV-এ অডিও ডেটা পাওয়া যায়নি");
 };
 
 export const ffmpegVersion = () => run("ffmpeg", ["-version"]).split("\n")[0];

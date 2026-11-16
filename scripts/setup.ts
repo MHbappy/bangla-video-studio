@@ -1,9 +1,7 @@
-// npm run setup — একবার: Whisper মডেল (models/), ডিফল্ট SFX, ffmpeg যাচাই
-import { QUALITY, WHISPER_MODEL } from "./config";
+// npm run setup — একবার: ডিফল্ট SFX, ffmpeg আর রেন্ডারের ব্রাউজার যাচাই
 import { ffmpegVersion } from "./media";
 import { browserStatus } from "./remotion";
 import { ensureSfx } from "./sfx";
-import { loadWhisper } from "./whisper";
 
 if (Number(process.versions.node.split(".")[0]) < 20) {
   console.error(`✗ Node ২০ বা নতুন দরকার (এখন ${process.version})`);
@@ -18,6 +16,4 @@ console.log(
 );
 const made = ensureSfx();
 console.log(`✓ সাউন্ড ইফেক্ট: media/library/sfx/${made.length ? ` (নতুন: ${made.join(", ")})` : ""}`);
-console.log(`→ মডেল: ${WHISPER_MODEL} (${QUALITY}) — প্রথমবার নামতে কিছুক্ষণ লাগবে...`);
-await loadWhisper();
-console.log("✓ সেটআপ শেষ। নতুন ভিডিও: npm run new -- <নাম> <ভিডিও ফাইল>   টেস্ট: npm run demo");
+console.log("✓ সেটআপ শেষ। নতুন ভিডিও: npm run new -- <নাম> <ভিডিও ফাইল> <লেখা.srt>   টেস্ট: npm run demo");

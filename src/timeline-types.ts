@@ -18,6 +18,15 @@ export type Corner = (typeof CORNERS)[number];
 export const SOCIALS = ["facebook", "whatsapp", "youtube", "web", "phone"] as const;
 export type Social = { type: (typeof SOCIALS)[number]; text: string };
 
+// ---- ক্যাপশনের জায়গা: x = মাঝখান (বাঁ থেকে %), y = নিচের প্রান্ত (উপর থেকে %) ----
+// horizontal = ১৬:৯ ফ্রেম, vertical = খাড়া ফ্রেম (Shorts / খাড়া ফুটেজ)
+export type CaptionXY = { x: number; y: number };
+export type CaptionPosition = { horizontal: CaptionXY; vertical: CaptionXY };
+export type CaptionPositionFile = { horizontal?: Partial<CaptionXY>; vertical?: Partial<CaptionXY> };
+export const CAPTION_POSITION: CaptionPosition = { horizontal: { x: 50, y: 93.5 }, vertical: { x: 50, y: 73 } };
+// সীমা: ক্যাপশন ফ্রেমের বাইরে বা (খাড়ায়) একদম নিচের প্ল্যাটফর্ম-UI-তে না যায়
+export const CAPTION_RANGE = { x: [10, 90], horizontal: [15, 97], vertical: [15, 85] } as const;
+
 // ---- ব্র্যান্ড: media/library/brand/brand.json (সব ভিডিওতে) + edit.json-এর "brand" (শুধু এই ভিডিওতে বদল) ----
 export type BrandFile = {
   name?: string; // দোকান/চ্যানেলের নাম
@@ -31,6 +40,7 @@ export type BrandFile = {
   qr?: string | false; // QR কোডের ছবি (না দিলে qr.png; logo-র মতো একই জায়গায় খোঁজা হয়)
   social?: Social[];
   contactBar?: false | { start?: number; every?: number; duration?: number; atEnd?: boolean }; // সেকেন্ড
+  captionPosition?: CaptionPositionFile; // সব ভিডিওর ডিফল্ট ক্যাপশনের জায়গা (রিসোর্স ম্যানেজার থেকে); এক ভিডিওতে বদল → edit.json-এর captionPosition
 };
 
 export type TimelineBrand = {
@@ -82,6 +92,8 @@ export type MusicSection = { path: string; startMs: number; endMs: number; volum
 export type EditFile = {
   arollFocus?: string; // মুখ কোথায় (CSS object-position), যেমন "50% 35%"
   captionStyle?: CaptionStyle; // ডিফল্ট "box"
+  // ক্যাপশনের জায়গা, শুধু এই ভিডিওতে (brand.json-এর captionPosition-এর উপর): { "vertical": { "y": 50 } } — পণ্য নিচে থাকলে উপরে তুলতে
+  captionPosition?: CaptionPositionFile;
   autoPunch?: boolean; // পরপর aroll শটে পালা করে 1.0 / 1.1 পাঞ্চ (ডিফল্ট true)
   arollGrade?: Grade; // A-roll-এর রং
   endScreen?: number | { seconds: number; text?: string }; // শেষের ৫–২০s: A-roll বাঁয়ে ছোট, ডান দিক YouTube end screen-এর জন্য ফাঁকা
@@ -113,6 +125,7 @@ export type Timeline = {
   arollGrade?: Grade;
   endScreenText?: string;
   captionStyle: CaptionStyle;
+  captionPosition?: CaptionPosition;
   sfx: { volume: number; whoosh: string; pop: string } | null;
   music?: MusicSection[];
   captionEmphasis?: boolean;

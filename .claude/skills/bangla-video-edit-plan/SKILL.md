@@ -64,7 +64,7 @@ Shot options: `broll: "name"` or `{ "file", "from": sec, "move": "slowZoomIn|slo
 | `ChapterCard` | title, number? | top-left tag | chapter divider → **also builds YouTube chapters** |
 | `BulletList` | items[], title? | right panel, ≤4 items | list, items appear one by one with a pop |
 | `StatCard` | value, label, sub? | right panel | big counting number ("৳১,২৫০", "৯৮%") |
-| `LowerThird` | name, role? | name bar | — |
+| `LowerThird` | name, role?, align? (`"left"`/`"right"`), y? (bottom edge, % from top) | name bar above the captions, left — move it with `align`/`y` when it covers the product or a hand | — |
 | `CTA` | text, sub? | top pill | end card |
 | `Callout` | text, x, y (target %), sub? | ring + arrow on a point in the footage | big quote / key takeaway |
 | `Compare` | left{title,items[]}, right{title,items[]}, title? | small panel | A vs B, before / after |
@@ -112,7 +112,7 @@ Shot options: `broll: "name"` or `{ "file", "from": sec, "move": "slowZoomIn|slo
 
 **Ending:** for YouTube uploads add `"endScreen": 12` (5–20 s, or `{ "seconds": 12, "text": "দেখার জন্য ধন্যবাদ" }`): the last seconds become the end-screen layout, which leaves room for YouTube's end-screen elements, and the contact bar shows there. Put the CTA shot just before it. Skip it when the user says the video isn't for YouTube.
 
-**Captions:** `captionEmphasis` (default on) colours numbers, prices and Latin-script names (6000W, ৳১২,৫০০, ESP32) in the brand colour — write them that way in the transcript. `captionStyle` is `"box"` for tutorials (most readable) or `"highlight"` for energetic videos. Use `captions: false` only where on-screen text would clash.
+**Captions:** `captionEmphasis` (default on) colours numbers, prices and Latin-script names (6000W, ৳১২,৫০০, ESP32) in the brand colour — write them that way in the transcript. `captionStyle` is `"box"` for tutorials (most readable) or `"highlight"` for energetic videos. Use `captions: false` only where on-screen text would clash. Caption placement defaults come from the resource manager (`brand.json` → `captionPosition`, separately for `horizontal` 16:9 frames and `vertical` Shorts/portrait footage; `x` = centre from the left %, `y` = bottom edge from the top %). Override per video only when the footage needs it — e.g. product shown in the lower half of a vertical frame: `"captionPosition": { "vertical": { "y": 50 } }` — and check a frame (in vertical frames a `LowerThird` sits at 50–58%).
 
 ## Product marketing videos
 The viewer should want the product and know how to get it. The speaker's words stay as they are; you choose the pictures that prove them.
@@ -132,7 +132,7 @@ The viewer should want the product and know how to get it. The speaker's words s
 **What changes from the tutorial rules**
 - **Product on screen:** the product is visible (`broll`, `split`, `pip`) for at least 60% of the runtime. The face is for the hook, trust lines ("আমরা নিজেরা বানাই", warranty, the promise) and the CTA.
 - **Pace:** change the picture every 3–6 s; B-roll shots 2–4 s; no plain `aroll` longer than about 8 s. Graphics over footage still need ≥ 2.5 s. Back-to-back `broll` shots are normal here (the "not 3 in a row" rule doesn't apply) as long as the clip changes each time; still don't reuse one clip within about 60 s unless `from` shows a different part.
-- **Facts only from the speaker or `notes.md`:** never put a price, discount, warranty, stock claim, spec or superlative ("সেরা", "১ নম্বর") on screen that isn't in the transcript or the notes. No price given → no price graphic; list it as a question in the report. If a number in the transcript and in `notes.md` differ, use the notes (Whisper mishears numbers) and say so.
+- **Facts only from the speaker or `notes.md`:** never put a price, discount, warranty, stock claim, spec or superlative ("সেরা", "১ নম্বর") on screen that isn't in the transcript or the notes. No price given → no price graphic; list it as a question in the report. If a number in the transcript and in `notes.md` differ, use the notes (captions often get numbers wrong) and say so.
 - **Quick feature list without matching footage:** a wide product shot `broll` + overlay `BulletList` (≤ 4 items, ≤ 4 words each), rather than a full-screen `motion`.
 - **Reviews are quoted, never written:** `Review` only for words a real customer said — the customer speaking in the footage, the speaker quoting them, or a review pasted into `notes.md`. Shorten it to ≤ 18 words without changing the meaning. `name`, `role` (work / place) and `rating` only if given; never invent a name, a place or stars. On a clip of the customer talking, use `broll` + `Review` with `"sound"` off unless the notes ask for their voice.
 - **`badge` on `Offer`:** only a discount, deadline or stock claim the speaker or the notes state ("১১% ছাড়", "সীমিত সময়"). Work out a percentage only when both prices are given, and round down.

@@ -77,7 +77,7 @@ bangla-video-studio/
 | ধাপ | কী করবেন |
 |---|---|
 | ১ | কাঁচা ফুটেজ কেটে এক্সপোর্ট করুন (লোগো/মিউজিক/লেখা **ছাড়া**, শুধু কথা) — যেকোনো জায়গায় রাখুন, যেমন Desktop |
-| ২ | `npm run new -- laser-machine ~/Desktop/raw.mp4` — ফোল্ডার নিজে তৈরি হবে |
+| ২ | `npm run new -- laser-machine ~/Desktop/raw.mp4 ~/Desktop/raw.srt` — ফোল্ডার নিজে তৈরি হবে (লেখা = একই কাটের SRT/VTT, সময়সহ) |
 | ৩ | এই ভিডিওর B-roll রাখুন `media/videos/laser-machine/broll/`-এ |
 | ৪ | Claude-কে বলুন: "laser-machine প্রসেস করো" |
 
@@ -87,7 +87,7 @@ bangla-video-studio/
 
 ## যা করবেন না
 - ❌ `media/videos/`-এ সরাসরি ফাইল রাখবেন না — সবসময় ভিডিওর নামের ফোল্ডারের ভেতরে
-- ❌ আগে থেকে এডিট করা ভিডিও (লোগো, মিউজিক, লেখা বসানো) A-roll হিসেবে দেবেন না — Whisper কথা বুঝবে না, আর গ্রাফিক্স দুবার বসবে
+- ❌ আগে থেকে এডিট করা ভিডিও (লোগো, মিউজিক, লেখা বসানো) A-roll হিসেবে দেবেন না — গ্রাফিক্স দুবার বসবে
 - ❌ B-roll-এর নাম `IMG_4521.mp4` রাখবেন না — Claude নাম দেখেই বোঝে কোথায় বসাবে
 
 বিস্তারিত: [docs/RESOURCES.md](docs/RESOURCES.md) (মান, ফরম্যাট) · [docs/SETTINGS.md](docs/SETTINGS.md) (সব অপশন)

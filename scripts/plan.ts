@@ -2,6 +2,10 @@
 import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
+  CAPTION_POSITION,
+  CAPTION_RANGE,
+  type CaptionPosition,
+  type CaptionPositionFile,
   AROLL_FULL,
   type BrandFile,
   CAPTION_STYLES,
@@ -68,6 +72,9 @@ const checkGfx = (g: NonNullable<TimelineShot["gfx"]>, tag: string, overlay: boo
     const ok = (r: unknown) => (Array.isArray(r) ? r.length === 2 : Boolean(r && typeof r === "object" && "label" in r && "value" in r));
     if (!rows.length || !rows.every(ok)) errors.push(`${tag}: SpecTable-এ "rows": [{ "label": "পাওয়ার", "value": "6000W" }, …] দিতে হবে`);
     else if (rows.length > (overlay ? 5 : 7)) warns.push(`${tag}: SpecTable-এ ${rows.length}টা সারি — ${overlay ? "ফুটেজের উপর ৫টা" : "৭টা"}র বেশি হলে পড়া কঠিন`);
+  } else if (g.scene === "LowerThird") {
+    if (g.align !== undefined && g.align !== "left" && g.align !== "right") errors.push(`${tag}: LowerThird-এর "align" হবে "left" বা "right"`);
+    if (g.y !== undefined && !(typeof g.y === "number" && g.y >= 20 && g.y <= 95)) errors.push(`${tag}: LowerThird-এর "y" হবে 20–95 (কার্ডের নিচের প্রান্ত, উপর থেকে %)`);
   } else if (g.scene === "Review") {
     if (!String(g.quote ?? "").trim()) errors.push(`${tag}: Review-এ "quote" (কাস্টমারের কথা) দিতে হবে`);
     else if (words(g.quote) > (overlay ? 18 : 30)) warns.push(`${tag}: Review-এর কথা ${words(g.quote)} শব্দ — ${overlay ? 18 : 30} শব্দের মধ্যে রাখুন`);
@@ -243,6 +250,33 @@ if (edit.music) {
 
 const captionStyle = edit.captionStyle ?? "box";
 if (!CAPTION_STYLES.includes(captionStyle)) errors.push(`captionStyle হবে ${CAPTION_STYLES.join(" | ")}`);
+// ক্যাপশনের জায়গা: ডিফল্ট ← brand.json-এর captionPosition (রিসোর্স ম্যানেজার) ← edit.json-এর captionPosition
+if ((edit as { captionY?: unknown }).captionY !== undefined) errors.push(`captionY এখন নেই — লিখুন "captionPosition": { "vertical": { "y": ${(edit as { captionY?: unknown }).captionY} } }`);
+const captionPosition: CaptionPosition = { horizontal: { ...CAPTION_POSITION.horizontal }, vertical: { ...CAPTION_POSITION.vertical } };
+{
+  let lib: CaptionPositionFile | undefined;
+  try {
+    const f = path.join(LIBRARY, "brand", "brand.json");
+    if (existsSync(f)) lib = readJson<BrandFile>(f).captionPosition;
+  } catch {
+    // brand.json-এর JSON ভুল নিচে ব্র্যান্ড অংশে ধরা পড়ে
+  }
+  for (const [src, pos] of [["brand.json", lib], ["edit.json", edit.captionPosition]] as const) {
+    if (pos === undefined) continue;
+    if (!pos || typeof pos !== "object") {
+      errors.push(`${src}: captionPosition হবে { "horizontal": { "x", "y" }, "vertical": { "x", "y" } }`);
+      continue;
+    }
+    for (const o of ["horizontal", "vertical"] as const)
+      for (const k of ["x", "y"] as const) {
+        const v = pos[o]?.[k];
+        if (v === undefined) continue;
+        const [lo, hi] = k === "x" ? CAPTION_RANGE.x : CAPTION_RANGE[o];
+        if (typeof v !== "number" || !(v >= lo && v <= hi)) errors.push(`${src}: captionPosition.${o}.${k} হবে ${lo}–${hi} (%)`);
+        else captionPosition[o][k] = v;
+      }
+  }
+}
 
 let sfx: Timeline["sfx"] = null;
 if (edit.sfx !== false) {
@@ -335,7 +369,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-writeJson(vpath(slug, "timeline.json"), { arollFocus: edit.arollFocus ?? "50% 35%", arollGrade: edit.arollGrade, endScreenText: es?.text, captionStyle, captionEmphasis: edit.captionEmphasis ?? true, sfx, music, brand, shots } satisfies Timeline);
+writeJson(vpath(slug, "timeline.json"), { arollFocus: edit.arollFocus ?? "50% 35%", arollGrade: edit.arollGrade, endScreenText: es?.text, captionStyle, captionPosition, captionEmphasis: edit.captionEmphasis ?? true, sfx, music, brand, shots } satisfies Timeline);
 
 // YouTube চ্যাপ্টার: ChapterCard শটগুলো থেকে
 const hms = (ms: number) => {

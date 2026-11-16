@@ -6,7 +6,7 @@ import type { VideoProps } from "../data";
 import { Scene } from "../scenes";
 import { ShotLayoutContext } from "../scenes/common";
 import { SfxContext } from "../sfx";
-import { GFX_OVERLAY, type Timeline, type TimelineShot } from "../timeline-types";
+import { CAPTION_POSITION, GFX_OVERLAY, type Timeline, type TimelineShot } from "../timeline-types";
 import type { CaptionLine } from "../types";
 import { ARollLayer } from "./ARollLayer";
 import { BarClear, barProgress, barTop, BrandLayer } from "./Brand";
@@ -54,11 +54,13 @@ const Captions: React.FC<{ lines: CaptionLine[]; timeline: Timeline }> = ({ line
   // Shorts-এ end screen নেই (পুরো A-roll) — সেখানে ক্যাপশন থাকে
   if (shot.layout === "endscreen" && width > height) return null;
   const emphasis = timeline.captionEmphasis ?? true;
-  if (height > width) return <ShortsCaptions lines={lines} emphasis={emphasis} />;
-  // যোগাযোগ বার দেখালে ক্যাপশন তার উপরে সরে যায়
-  const lift = barProgress(timeline.brand, ms) * Math.max(0, barTop(Math.min(width / 1920, height / 1080)) - height * 0.065);
+  const position = timeline.captionPosition ?? CAPTION_POSITION;
+  if (height > width) return <ShortsCaptions lines={lines} emphasis={emphasis} pos={position.vertical} />;
+  // যোগাযোগ বার দেখালে ক্যাপশন তার উপরে সরে যায় (আগে থেকেই উপরে থাকলে নড়ে না)
+  const pos = position.horizontal;
+  const lift = barProgress(timeline.brand, ms) * Math.max(0, barTop(Math.min(width / 1920, height / 1080)) - height * (1 - pos.y / 100));
   return (
-    <BoxCaptions lines={lines} style={timeline.captionStyle === "highlight" ? "highlight" : "box"} rightInset={shot.layout === "pip" ? width * 0.3 : 0} bottomInset={lift} emphasis={emphasis} />
+    <BoxCaptions lines={lines} style={timeline.captionStyle === "highlight" ? "highlight" : "box"} rightInset={shot.layout === "pip" ? width * 0.3 : 0} lift={lift} emphasis={emphasis} pos={pos} />
   );
 };
 

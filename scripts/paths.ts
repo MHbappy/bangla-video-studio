@@ -1,9 +1,9 @@
 // সব পাথ এক জায়গায়। প্রতিটা ভিডিও: media/videos/<slug>/ ; শেয়ার্ড: media/library/
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// এই কম্পিউটারের সেটিং (.env — git-এ যায় না): QUALITY, DEVICE, OFFLINE, PORT, BROWSER_EXECUTABLE…
+// এই কম্পিউটারের সেটিং (.env — git-এ যায় না): PORT, BROWSER_EXECUTABLE…
 // টার্মিনালে দেওয়া env আগে ধরা হয়; ফাইল না থাকলে কিছু হয় না
 try {
   process.loadEnvFile?.(".env");
@@ -21,6 +21,18 @@ export const vpath = (slug: string, ...p: string[]) => path.join(VIDEOS, slug, .
 export const webPath = (p: string) => path.relative(MEDIA, p).split(path.sep).join("/");
 
 export const isSlug = (s: string) => /^[a-z0-9][a-z0-9-]{0,60}$/.test(s);
+
+// ফাইল কখনো মোছা হয় না — bin ফোল্ডারে <নাম>-<সময়>.<ext> হয়ে সরে যায় (দরকার হলে ফেরত আনা যায়)
+const stamp = () => new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
+export const retire = (file: string, bin: string) => {
+  mkdirSync(bin, { recursive: true });
+  const { name, ext } = path.parse(file);
+  let dest = path.join(bin, `${name}-${stamp()}${ext}`);
+  for (let i = 2; existsSync(dest); i++) dest = path.join(bin, `${name}-${stamp()}-${i}${ext}`);
+  renameSync(file, dest);
+};
+// media/library/music → media/.removed/library/music (assets স্ক্যানের বাইরে)
+export const binFor = (dir: string) => path.join(MEDIA, ".removed", path.relative(MEDIA, dir));
 
 export const setCurrent = (slug: string) => {
   mkdirSync(MEDIA, { recursive: true });
@@ -56,7 +68,7 @@ const dashHelp = (): never => {
   process.exit(1);
 };
 // মান লাগে এমন অপশন npm খেয়ে ফেললে মানটা কোনটার ছিল আর বোঝা যায় না — শুরুতেই থামি
-if (["format", "from", "to", "pick", "title", "sub", "side", "quality", "device", "port", "shot", "at"].some((n) => swallowed(n) !== undefined)) dashHelp();
+if (["format", "from", "to", "pick", "title", "sub", "side", "port", "shot", "at"].some((n) => swallowed(n) !== undefined)) dashHelp();
 
 export const flag = (name: string) => {
   if (process.argv.includes(`--${name}`)) return true;

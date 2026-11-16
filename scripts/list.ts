@@ -12,8 +12,8 @@ const step = (s: string) =>
   : existsSync(vpath(s, "edit.json")) ? "প্ল্যান আছে → npm run plan"
   : existsSync(vpath(s, "captions.json")) ? 'ক্যাপশন আছে → Claude: "edit plan বানাও"'
   : existsSync(vpath(s, "transcript.json")) ? "→ npm run finalize"
-  : existsSync(vpath(s, "work", "raw.json")) ? 'ট্রান্সক্রাইব হয়েছে → Claude: "captions ঠিক করো"'
-  : "→ npm run transcribe";
+  : existsSync(vpath(s, "work", "raw.json")) ? `লেখা আছে → Claude: "${s} প্রসেস করো"`
+  : `লেখা নেই → npm run import -- ${s} <ফাইল.srt>`;
 for (const s of slugs) {
   const p = JSON.parse(readFileSync(vpath(s, "project.json"), "utf8"));
   console.log(`${s === cur ? "▶" : " "} ${s.padEnd(28)} ${((p.durationInFrames / p.fps) / 60).toFixed(1).padStart(5)} মি.  ${step(s)}`);

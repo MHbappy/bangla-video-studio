@@ -12,6 +12,17 @@ const FADE_MS = 300;
 // খাড়া (Shorts): বার উপরে — ফ্রেমের উচ্চতার এই ভগ্নাংশে শুরু, এই উচ্চতার (1080p একক)
 const V_BAR_TOP = 0.085;
 const V_BAR_H = 104;
+const V_LOGO_MARGIN = 60;
+const V_LOGO_GAP = 16;
+
+// খাড়া ফ্রেমে লোগো উপরের কোণে থাকলে বার তার পাশে, একই লাইনে বসে (নইলে V_BAR_TOP-এ, মাঝখানে)
+const besideLogo = (brand: TimelineBrand | undefined) => (brand?.logo?.position.startsWith("top") ? brand.logo : undefined);
+
+// খাড়া ফ্রেমে বারের নিচের প্রান্ত (px, আনুমানিক) — উপরের overlay গ্রাফিক্স এর নিচে নামে
+const vBarBottom = (brand: TimelineBrand | undefined, height: number, u: number) => {
+  const logo = besideLogo(brand);
+  return logo ? (V_LOGO_MARGIN + Math.max(logo.size, V_BAR_H)) * u : height * V_BAR_TOP + V_BAR_H * u;
+};
 
 // এই মুহূর্তে বার কতটা দৃশ্যমান (০–১) — ক্যাপশন সরানোর জন্য
 export const barProgress = (brand: TimelineBrand | undefined, ms: number) => {
@@ -42,7 +53,7 @@ const Logo: React.FC<{ logo: NonNullable<TimelineBrand["logo"]> }> = ({ logo }) 
   const frame = useCurrentFrame();
   const u = useUnit();
   const vertical = useIsVertical();
-  const m = (vertical ? 60 : 40) * u;
+  const m = (vertical ? V_LOGO_MARGIN : 40) * u;
   const [v, h] = logo.position.split("-");
   const fade = interpolate(frame, [0, 15], [0, logo.opacity], { extrapolateRight: "clamp" });
   return (
@@ -74,7 +85,7 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
   const nameBlock = (brand.name || brand.address) && (
     <div style={{ background: theme.color.accent, color: "#111", padding: `${12 * u}px ${28 * u}px`, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: h }}>
       {brand.name && <div style={{ fontSize: (vertical ? 34 : 40) * u, fontWeight: 700, lineHeight: 1.25, whiteSpace: "nowrap" }}>{brand.name}</div>}
-      {brand.address && !vertical && <div style={{ fontSize: 24 * u, fontWeight: 500, lineHeight: 1.3, opacity: 0.85, whiteSpace: "nowrap" }}>{brand.address}</div>}
+      {brand.address && !vertical && <div style={{ fontSize: 28 * u, fontWeight: 500, lineHeight: 1.3, opacity: 0.85, whiteSpace: "nowrap" }}>{brand.address}</div>}
     </div>
   );
   const phonePage = hasPhone && (
@@ -83,7 +94,7 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
         <Icon type="phone" size={36 * u} />
       </div>
       <div>
-        {brand.phoneLabel && <div style={{ fontSize: 24 * u, color: theme.color.muted, lineHeight: 1.3, whiteSpace: "nowrap" }}>{brand.phoneLabel}</div>}
+        {brand.phoneLabel && <div style={{ fontSize: (vertical ? 24 : 28) * u, color: theme.color.muted, lineHeight: 1.3, whiteSpace: "nowrap" }}>{brand.phoneLabel}</div>}
         <div style={{ fontSize: 48 * u, fontWeight: 700, color: "#fff", lineHeight: 1.2, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{brand.phone}</div>
       </div>
     </div>
@@ -135,6 +146,20 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
       </div>
     </div>
   );
+  const logo = vertical ? besideLogo(brand) : undefined;
+  if (logo) {
+    // লোগোর পাশে: অদৃশ্য লোগোর কপি ঠিক লোগোর জায়গা ধরে রাখে, বার বাকি চওড়ায় — লোগোর উচ্চতার মাঝ বরাবর
+    const right = logo.position.endsWith("right");
+    const side = (near: boolean) => (near ? V_LOGO_MARGIN : 40) * u;
+    return (
+      <AbsoluteFill style={{ padding: `${V_LOGO_MARGIN * u}px ${side(right)}px 0 ${side(!right)}px` }}>
+        <div style={{ display: "flex", flexDirection: right ? "row" : "row-reverse", alignItems: "center", gap: V_LOGO_GAP * u }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: right ? "flex-start" : "flex-end" }}>{card}</div>
+          <Img src={staticFile(logo.path)} style={{ height: logo.size * u, flexShrink: 0, visibility: "hidden" }} />
+        </div>
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill
       style={
@@ -158,7 +183,7 @@ export const BarClear: React.FC<{ brand?: TimelineBrand; shot: TimelineShot; chi
   const u = useUnit();
   const vertical = useIsVertical();
   const ms = shot.startMs + (frame / fps) * 1000;
-  const clear = vertical && !VERTICAL_BUSY.includes(shot.layout) ? barProgress(brand, ms) * (height * V_BAR_TOP + (V_BAR_H + 24) * u) : 0;
+  const clear = vertical && !VERTICAL_BUSY.includes(shot.layout) ? barProgress(brand, ms) * (vBarBottom(brand, height, u) + 24 * u) : 0;
   return <TopClearContext.Provider value={clear}>{children}</TopClearContext.Provider>;
 };
 

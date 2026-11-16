@@ -36,7 +36,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 120px; }
 .card > p.hint { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 18px; align-items: start; }
-.sticky { position: sticky; top: 80px; }
+.sticky { position: sticky; top: 80px; max-height: calc(100vh - 96px); overflow-y: auto; }
 label.f { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: 14px; }
 label.f small { font-weight: 400; color: var(--muted); }
 input[type=text], input[type=number], textarea { font: inherit; font-weight: 400; color: var(--text); background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
@@ -106,24 +106,53 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 pre.log { background: #0b0d11; color: #c9d1d9; border-radius: 10px; padding: 12px; font-size: 12.5px; max-height: 220px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; }
 details summary { cursor: pointer; font-weight: 600; }
 
-/* ভিডিওর উপর প্রিভিউ */
-.preview { aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; background: linear-gradient(160deg, #3a4a5e, #1d2633); container-type: inline-size; }
-.preview .face { position: absolute; left: 50%; top: 35%; width: 13cqw; height: 13cqw; margin: -6.5cqw; border-radius: 50%; background: #d9a87c; }
-.preview .body { position: absolute; left: 50%; top: 52%; width: 32cqw; height: 40cqw; margin-left: -16cqw; border-radius: 16cqw 16cqw 0 0; background: #2f6f8f; }
-.preview .logo { position: absolute; filter: drop-shadow(0 1px 4px rgba(0,0,0,.45)); }
-.preview .pbar { position: absolute; left: 1.9cqw; bottom: 1.9cqw; display: flex; border-radius: .8cqw; overflow: hidden; box-shadow: 0 .4cqw 1.5cqw rgba(0,0,0,.35); max-width: 96cqw; }
-.pbar .nm { background: var(--accent); color: #111; padding: .6cqw 1.45cqw; display: flex; flex-direction: column; justify-content: center; min-height: 6.25cqw; }
-.pbar .nm b { font-size: 2.08cqw; line-height: 1.25; white-space: nowrap; }
-.pbar .nm small { font-size: 1.25cqw; opacity: .85; white-space: nowrap; }
-.pbar .pn { background: var(--panel); color: #fff; padding: .6cqw 1.56cqw; display: flex; align-items: center; gap: .94cqw; min-height: 6.25cqw; }
-.pbar .pn .ic { width: 3.3cqw; height: 3.3cqw; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
-.pbar .pn small { display: block; font-size: 1.25cqw; color: #a9b4c4; white-space: nowrap; }
-.pbar .pn b { display: block; font-size: 2.5cqw; line-height: 1.2; white-space: nowrap; }
-.pbar .soc { display: flex; gap: 1.8cqw; align-items: center; }
-.pbar .soc div { display: flex; align-items: center; gap: .6cqw; font-size: 1.77cqw; font-weight: 600; white-space: nowrap; }
-.pbar .soc i { width: 2.7cqw; height: 2.7cqw; background: #fff; border-radius: .6cqw; display: grid; place-items: center; }
-.pbar .qr { background: #fff; padding: .4cqw; width: 6.25cqw; height: 6.25cqw; }
+/* ভিডিওর উপর প্রিভিউ — .stage আসল ফ্রেমের মাপে (1920×1080 / 1080×1920 px), JS স্কেল করে বসায়; --u = ভিডিওর useUnit() */
+.preview { position: relative; border-radius: 12px; overflow: hidden; margin: 0 auto; background: linear-gradient(160deg, #3a4a5e, #1d2633); }
+.preview.f-main, .preview.f-graphics { aspect-ratio: 16/9; width: 100%; }
+.preview.f-shorts { aspect-ratio: 9/16; height: min(52vh, 560px); max-width: 100%; }
+.preview.f-graphics { background: repeating-conic-gradient(#8a8f98 0 25%, #c3c7ce 0 50%) 0 0 / 16px 16px; }
+.preview.f-graphics .face, .preview.f-graphics .body { display: none; }
+.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; --u: 1; font-family: "Hind Siliguri", sans-serif; }
+.stage .face { position: absolute; left: 50%; top: 35%; width: 13%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #d9a87c; }
+.stage .body { position: absolute; left: 50%; top: 52%; width: 32%; height: 72%; transform: translateX(-50%); border-radius: 999px 999px 0 0; background: #2f6f8f; }
+.f-shorts .stage .face { top: 40%; width: 30%; }
+.f-shorts .stage .body { top: 50%; width: 74%; height: 50%; }
+.stage .logo { position: absolute; filter: drop-shadow(0 2px 8px rgba(0,0,0,.45)); }
+.stage .safe { position: absolute; left: 0; right: 0; bottom: 0; height: 20%; background: rgba(0,0,0,.35); border-top: 4px dashed rgba(255,255,255,.55); color: rgba(255,255,255,.8); font-size: 38px; display: grid; place-items: center; text-align: center; padding: 0 60px; }
+.stage .pbar { position: absolute; display: flex; border-radius: calc(16px * var(--u)); overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.f-main .pbar, .f-graphics .pbar { left: calc(36px * var(--u)); bottom: calc(36px * var(--u)); max-width: calc(100% - 72px * var(--u)); }
+.f-shorts .pbar { top: 8.5%; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 80px * var(--u)); }
+.pbar .nm { background: var(--accent); color: #111; padding: calc(12px * var(--u)) calc(28px * var(--u)); display: flex; flex-direction: column; justify-content: center; min-height: var(--bh); }
+.pbar .nm b { font-size: calc(40px * var(--u)); line-height: 1.25; white-space: nowrap; }
+.f-shorts .pbar .nm b { font-size: calc(34px * var(--u)); }
+.pbar .nm small { font-size: calc(28px * var(--u)); font-weight: 500; opacity: .85; line-height: 1.3; white-space: nowrap; }
+.pbar .pn { background: rgba(14,17,22,.82); color: #fff; padding: calc(12px * var(--u)) calc(30px * var(--u)); display: grid; align-items: center; min-height: var(--bh); min-width: 0; }
+.pbar .pn > * { grid-area: 1 / 1; }
+.pbar .pn > .off { opacity: 0; }
+.pbar .ph { display: flex; align-items: center; gap: calc(18px * var(--u)); }
+.f-shorts .pbar .pn { flex: 1; }
+.pbar .pn .ic { width: calc(64px * var(--u)); height: calc(64px * var(--u)); border-radius: 50%; background: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.pbar .pn small { display: block; font-size: calc(28px * var(--u)); color: #A9B4C4; line-height: 1.3; white-space: nowrap; }
+.f-shorts .pbar .pn small { font-size: calc(24px * var(--u)); }
+.pbar .pn b { display: block; font-size: calc(48px * var(--u)); line-height: 1.2; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pbar .soc { display: flex; flex-wrap: nowrap; align-items: center; gap: calc(10px * var(--u)) calc(34px * var(--u)); }
+.f-shorts .pbar .soc { flex-wrap: wrap; }
+.pbar .soc div { display: flex; align-items: center; gap: calc(12px * var(--u)); font-size: calc(34px * var(--u)); font-weight: 600; white-space: nowrap; }
+.pbar .soc i { width: calc(52px * var(--u)); height: calc(52px * var(--u)); background: #fff; border-radius: calc(12px * var(--u)); display: grid; place-items: center; flex-shrink: 0; }
+.pbar .qr { background: #fff; padding: calc(8px * var(--u)); width: var(--bh); height: var(--bh); flex-shrink: 0; }
 .pbar .qr img { width: 100%; height: 100%; object-fit: contain; }
+.pnote { margin: 8px 0 0; color: var(--muted); font-size: 13px; min-height: 1em; }
+/* ক্যাপশনের নমুনা — মাপ src/captions/ (ShortsCaptions / BoxCaptions) থেকে */
+.stage .pcap { position: absolute; display: flex; justify-content: center; pointer-events: none; }
+.pcap.v > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 26px; font-weight: 700; font-size: 92px; line-height: 1.35; text-align: center; color: #fff; -webkit-text-stroke: 4.6px #000; paint-order: stroke fill; text-shadow: 0 6px 18px rgba(0,0,0,.55); }
+.pcap.v .on { color: var(--accent); }
+.pcap.h > div { font-weight: 500; font-size: 50px; line-height: 1.45; color: #fff; background: rgba(0,0,0,.62); padding: 8px 27.5px; border-radius: 12.5px; text-align: center; }
+.capctl { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.capctl h3 { margin: 0; font-size: 15px; }
+.capctl h3 small { font-weight: 400; color: var(--muted); }
+.capctl .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.capctl p { margin: 0; color: var(--muted); font-size: 13px; }
+.seg.fmt { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; width: 100%; }
 .ptabs { display: flex; gap: 6px; margin-top: 10px; }
 
 .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); z-index: 9; transform: translateY(100%); transition: transform .2s; }
@@ -212,9 +241,17 @@ details summary { cursor: pointer; font-weight: 600; }
       <div class="sticky">
         <div class="card">
           <h2>প্রিভিউ</h2>
-          <p class="hint">মোটামুটি এরকম দেখাবে (১৬:৯)।</p>
-          <div class="preview" id="preview"><div class="face"></div><div class="body"></div><img class="logo" id="pLogo" alt=""><div class="pbar" id="pBar"></div></div>
+          <p class="hint">মোটামুটি এরকম দেখাবে — প্রতিটা সাইজ আলাদা করে দেখুন।</p>
+          <div class="seg fmt" id="pFormat"><button data-v="main">▭ ১৬:৯ মূল ভিডিও</button><button data-v="shorts">▯ ৯:১৬ Shorts/Reels</button><button data-v="graphics">◩ স্বচ্ছ গ্রাফিক্স</button></div>
+          <div class="preview f-main" id="preview"><div class="stage" id="pStage"><div class="face"></div><div class="body"></div><div class="safe" id="pSafe">এখানে YouTube/Reels-এর লেখা ও বোতাম থাকে</div><img class="logo" id="pLogo" alt=""><div class="pbar" id="pBar"></div><div class="pcap" id="pCap"></div></div></div>
+          <p class="pnote" id="pNote"></p>
           <div class="ptabs"><button class="btn ghost" data-page="0">ফোন পাতা</button><button class="btn ghost" data-page="1">সোশ্যাল পাতা</button></div>
+          <div class="capctl">
+            <div class="row"><h3>ক্যাপশনের জায়গা <small id="capFor"></small></h3><button class="link" id="capReset" type="button">ডিফল্টে ফেরাও</button></div>
+            <label class="f">ডানে-বাঁয়ে (X) <small id="capXV"></small><input type="range" id="capX" min="10" max="90" step="1"></label>
+            <label class="f">উপরে-নিচে (Y) <small id="capYV"></small><input type="range" id="capY" min="15" max="97" step="0.5"></label>
+            <p>১৬:৯ আর ৯:১৬-এর জায়গা আলাদা — উপরের সাইজ বদলে প্রতিটা ঠিক করুন। সেভের পর ভিডিওতে আনতে <code>npm run plan</code>।</p>
+          </div>
         </div>
       </div>
     </div>
@@ -240,7 +277,7 @@ details summary { cursor: pointer; font-weight: 600; }
   <section id="tab-videos" hidden>
     <div class="card">
       <h2>নতুন ভিডিও</h2>
-      <p class="hint">কাঁচা ফুটেজ দিন: কাটা, কিন্তু লোগো, মিউজিক বা লেখা ছাড়া। এরপর নিজে থেকেই ট্রান্সক্রাইব শুরু হবে।</p>
+      <p class="hint">কাঁচা ফুটেজ দিন: কাটা, কিন্তু লোগো, মিউজিক বা লেখা ছাড়া। তৈরির পর ভিডিওর কার্ডে এই কাটেরই লেখা (SRT/VTT, সময়সহ) দিন।</p>
       <div class="grid2">
         <label class="f">ভিডিওর নাম <small>ছোট ইংরেজি অক্ষর, সংখ্যা আর - (যেমন laser-machine)</small><input type="text" id="newSlug" placeholder="laser-machine" autocomplete="off"></label>
         <div class="drop" id="newDrop"><b>ফুটেজ (A-roll)</b><br><span id="newFile">টেনে আনুন বা ক্লিক করুন</span><input type="file" accept="video/*"></div>
@@ -331,6 +368,7 @@ const form = () => ({
   logoPosition: $("#logoPosition .on")?.dataset.v || "top-right",
   logoSize: Number($("#logoSize").value), logoOpacity: Number($("#logoOpacity").value),
   contactBar: $("#barOn").checked ? { start: Number($("#barStart").value), every: Number($("#barEvery").value), duration: Number($("#barDuration").value), atEnd: $("#barAtEnd").checked } : false,
+  captionPosition: { horizontal: { ...cap.horizontal }, vertical: { ...cap.vertical } },
 });
 const fillBrand = (b) => {
   for (const k of ["name", "address", "phone", "phoneLabel"]) $("#" + k).value = b[k] || "";
@@ -342,6 +380,8 @@ const fillBrand = (b) => {
   $("#barOn").checked = Boolean(bar);
   const d = bar || { start: 4, every: 30, duration: 7, atEnd: true };
   $("#barStart").value = d.start; $("#barEvery").value = d.every; $("#barDuration").value = d.duration; $("#barAtEnd").checked = d.atEnd !== false;
+  cap = { horizontal: { ...CAP_DEFAULT.horizontal, ...b.captionPosition?.horizontal }, vertical: { ...CAP_DEFAULT.vertical, ...b.captionPosition?.vertical } };
+  syncCap();
   saved = JSON.stringify(form());
   refresh();
 };
@@ -350,6 +390,7 @@ $$("#logoPosition button").forEach((b) => b.addEventListener("click", () => { se
 
 let saved = "";
 const refresh = () => {
+  cap[orient()] = { x: Number($("#capX").value), y: Number($("#capY").value) };
   const f = form();
   $("#logoSizeV").textContent = f.logoSize + "px";
   $("#logoOpacityV").textContent = Math.round(f.logoOpacity * 100) + "%";
@@ -361,36 +402,114 @@ const refresh = () => {
 };
 $("#tab-brand").addEventListener("input", refresh);
 
-// প্রিভিউ: ভিডিওর ContactBar-এর মাপ (1080p) cqw-তে
+// প্রিভিউ: src/main/Brand.tsx-এর মাপ হুবহু — stage আসল পিক্সেলে আঁকা, পরে স্কেল
+// main/graphics = 1920×1080 (u = 1); shorts = 1080×1920 (u = 0.9): বার উপরে, ঠিকানা আর QR নেই, লোগো কোণ থেকে 60u
+const FORMATS = {
+  main: { w: 1920, h: 1080, u: 1, note: "final.mp4 — YouTube/Facebook-এর মূল ভিডিও।" },
+  shorts: { w: 1080, h: 1920, u: 0.9, note: "shorts.mp4 — বার উপরে আসে (নিচে YouTube/Reels-এর লেখা ঢাকে); ঠিকানা আর QR দেখায় না। split/PiP/মোশন শটে বার লুকায়।" },
+  graphics: { w: 1920, h: 1080, u: 1, note: "graphics.mov — স্বচ্ছ ব্যাকগ্রাউন্ডে শুধু লোগো/বার/গ্রাফিক্স, নিজের এডিটরে ফুটেজের উপর বসাতে।" },
+};
+// ক্যাপশনের জায়গা (brand.json-এর captionPosition) — ডিফল্ট আর সীমা src/timeline-types.ts-এর CAPTION_POSITION / CAPTION_RANGE
+const CAP_DEFAULT = { horizontal: { x: 50, y: 93.5 }, vertical: { x: 50, y: 73 } };
+const CAP_Y = { horizontal: [15, 97], vertical: [15, 85] };
+let cap = { horizontal: { ...CAP_DEFAULT.horizontal }, vertical: { ...CAP_DEFAULT.vertical } };
+const orient = () => (pFormat === "shorts" ? "vertical" : "horizontal");
+// স্লাইডারে এখনকার সাইজের মান বসাই (সাইজ বদলালে বা সেভ/বাতিলের পর)
+const syncCap = () => {
+  const o = orient();
+  [$("#capY").min, $("#capY").max] = CAP_Y[o];
+  $("#capX").value = cap[o].x;
+  $("#capY").value = cap[o].y;
+};
+$("#capReset").addEventListener("click", () => { cap[orient()] = { ...CAP_DEFAULT[orient()] }; syncCap(); refresh(); });
+let pFormat = "main";
+try { const v = localStorage.getItem("previewFormat"); if (FORMATS[v]) pFormat = v; } catch {}
+const fitStage = () => {
+  const F = FORMATS[pFormat];
+  const st = $("#pStage");
+  st.style.width = F.w + "px"; st.style.height = F.h + "px";
+  st.style.transform = `scale(${$("#preview").clientWidth / F.w})`;
+};
+new ResizeObserver(fitStage).observe($("#preview"));
+$$("#pFormat button").forEach((b) => b.addEventListener("click", () => {
+  pFormat = b.dataset.v;
+  syncCap();
+  try { localStorage.setItem("previewFormat", pFormat); } catch {}
+  refresh();
+}));
+
 const drawPreview = (f) => {
+  const F = FORMATS[pFormat], u = F.u, vertical = pFormat === "shorts";
+  $$("#pFormat button").forEach((x) => x.classList.toggle("on", x.dataset.v === pFormat));
+  $("#preview").className = "preview f-" + pFormat;
+  $("#pNote").textContent = F.note;
+  $("#pSafe").hidden = !vertical;
+  const st = $("#pStage");
+  st.style.setProperty("--u", u);
+  st.style.setProperty("--bh", (vertical ? 104 : 120) * u + "px");
+  fitStage();
+
   const logo = $("#pLogo");
   if (S?.logo) {
     logo.src = S.logo.url + "?v=" + S.logo.size;
     logo.style.display = "";
-    const m = (40 / 1920) * 100 + "cqw";
+    const m = (vertical ? 60 : 40) * u + "px";
     const [v, hz] = f.logoPosition.split("-");
     logo.style.top = logo.style.bottom = logo.style.left = logo.style.right = "";
     logo.style[v] = m; logo.style[hz] = m;
-    logo.style.height = (f.logoSize / 1920) * 100 + "cqw";
+    logo.style.height = f.logoSize * u + "px";
     logo.style.opacity = f.logoOpacity;
   } else logo.style.display = "none";
 
   const bar = $("#pBar");
   bar.replaceChildren();
+  for (const k of ["top", "left", "right", "transform", "maxWidth"]) bar.style[k] = "";
   const socials = SOCIAL.filter(([t]) => f.social[t].trim());
-  const hasAny = f.name || f.address || f.phone || socials.length || S?.qr;
+  const qr = S?.qr && !vertical; // Shorts ফোনেই দেখা হয় — নিজের স্ক্রিনের QR স্ক্যান হয় না
+  const address = !vertical && f.address;
+  const hasAny = f.name || address || f.phone || socials.length || qr;
   bar.style.display = f.contactBar && hasAny ? "" : "none";
-  if (f.name || f.address) bar.append(h("div", { class: "nm" }, f.name && h("b", {}, f.name), f.address && h("small", {}, f.address)));
+  if (f.name || address) bar.append(h("div", { class: "nm" }, f.name && h("b", {}, f.name), address && h("small", {}, address)));
   const showSocial = socials.length && (page === 1 || !f.phone);
   if (f.phone || socials.length) {
+    // ভিডিওর মতোই দুই পাতা একই ঘরে — বারের চওড়া বড় পাতার সমান, পাতা বদলালে নড়ে না
     const pn = h("div", { class: "pn" });
-    if (!showSocial) {
-      const ic = h("div", { class: "ic" }, icon("phone", "1.9cqw"));
-      pn.append(ic, h("div", {}, f.phoneLabel && h("small", {}, f.phoneLabel), h("b", {}, f.phone)));
-    } else pn.append(h("div", { class: "soc" }, socials.map(([t]) => h("div", {}, h("i", {}, icon(t, "1.9cqw")), f.social[t]))));
+    if (f.phone)
+      pn.append(h("div", { class: "ph" + (showSocial ? " off" : "") }, h("div", { class: "ic" }, icon("phone", 36 * u + "px")), h("div", {}, f.phoneLabel && h("small", {}, f.phoneLabel), h("b", {}, f.phone))));
+    if (socials.length)
+      pn.append(h("div", { class: "soc" + (showSocial ? "" : " off") }, socials.map(([t]) => h("div", {}, h("i", {}, icon(t, 36 * u + "px")), f.social[t]))));
     bar.append(pn);
   }
-  if (S?.qr) bar.append(h("div", { class: "qr" }, h("img", { src: S.qr.url + "?v=" + S.qr.size, alt: "" })));
+  if (qr) bar.append(h("div", { class: "qr" }, h("img", { src: S.qr.url + "?v=" + S.qr.size, alt: "" })));
+
+  // ক্যাপশনের নমুনা: x = মাঝখান, y = নিচের প্রান্ত (src/captions/position.ts-এর captionBox)
+  const c = cap[orient()], capEl = $("#pCap");
+  const cw = F.w * Math.min(vertical ? 0.86 : 0.8, (2 * Math.min(c.x, 100 - c.x)) / 100 - 0.04);
+  let cb = F.h * (1 - c.y / 100);
+  // ১৬:৯: বার দেখানোর সময় ক্যাপশন বারের উপরে ওঠে (Edit.tsx-এর lift)
+  const lifted = !vertical && bar.style.display !== "none" && cb < 178;
+  if (lifted) cb = 178;
+  capEl.className = "pcap " + (vertical ? "v" : "h");
+  capEl.style.width = cw + "px";
+  capEl.style.left = (F.w * c.x) / 100 - cw / 2 + "px";
+  capEl.style.bottom = cb + "px";
+  capEl.replaceChildren(vertical ? h("div", {}, h("span", {}, "আপনারা"), h("span", { class: "on" }, "চাইলে"), h("span", {}, "এটা")) : h("div", {}, "আপনারা চাইলে এটা পানির নিচেও নিয়ে যেতে পারবেন"));
+  $("#capFor").textContent = vertical ? "— ৯:১৬ (Shorts / খাড়া ভিডিও)" : "— ১৬:৯";
+  $("#capXV").textContent = `মাঝখান বাঁ থেকে ${c.x}%`;
+  $("#capYV").textContent = `নিচের প্রান্ত উপর থেকে ${c.y}%`;
+  if (lifted) $("#pNote").textContent += " বার দেখানোর সময় ক্যাপশন বারের উপরে ওঠে; বার সরলে নিজের জায়গায় নামে।";
+
+  // Shorts: লোগো উপরের কোণে থাকলে বার তার পাশে, একই লাইনে (Brand.tsx-এর besideLogo)
+  if (vertical && S?.logo && f.logoPosition.startsWith("top")) {
+    if (!logo.naturalWidth) { logo.onload = () => { logo.onload = null; refresh(); }; return; }
+    const lh = f.logoSize * u, lw = (lh * logo.naturalWidth) / logo.naturalHeight;
+    const right = f.logoPosition.endsWith("right");
+    bar.style.transform = "none";
+    bar.style.left = right ? 40 * u + "px" : "auto";
+    bar.style.right = right ? "auto" : 40 * u + "px";
+    bar.style.maxWidth = F.w - (40 + 60 + 16) * u - lw + "px";
+    bar.style.top = 60 * u + Math.max(0, (lh - bar.offsetHeight) / 2) + "px";
+  }
 };
 $$(".ptabs button").forEach((b) => b.addEventListener("click", () => { page = Number(b.dataset.page); refresh(); }));
 
@@ -426,9 +545,9 @@ const upload = (url, file, prog) =>
 
 // কোন জায়গায় কোন ধরনের ফাইল (সার্ভারের সাথে একই) — ভুল ফাইল পুরোটা আপলোড হওয়ার আগেই ধরি
 // photo = B-roll-এর ছবি (SVG নয় — সেটা শুধু লোগো/QR-এ চলে)
-const EXT = { image: /\.(png|jpe?g|webp|svg)$/i, photo: /\.(png|jpe?g|webp)$/i, video: /\.(mp4|mov|m4v|webm|mkv)$/i, audio: /\.(mp3|m4a|wav|aac|ogg)$/i };
-const EXT_TEXT = { image: "png, jpg, webp, svg", photo: "png, jpg, webp", video: "mp4, mov, m4v, webm, mkv", audio: "mp3, m4a, wav, aac, ogg" };
-const ACCEPT = { logo: ["image"], qr: ["image"], "library-music": ["audio"], "video-music": ["audio"], "library-broll": ["video", "photo"], "video-broll": ["video", "photo"], "video-aroll": ["video"] };
+const EXT = { image: /\.(png|jpe?g|webp|svg)$/i, photo: /\.(png|jpe?g|webp)$/i, video: /\.(mp4|mov|m4v|webm|mkv)$/i, audio: /\.(mp3|m4a|wav|aac|ogg)$/i, subs: /\.(srt|vtt)$/i };
+const EXT_TEXT = { image: "png, jpg, webp, svg", photo: "png, jpg, webp", video: "mp4, mov, m4v, webm, mkv", audio: "mp3, m4a, wav, aac, ogg", subs: "srt, vtt" };
+const ACCEPT = { logo: ["image"], qr: ["image"], "library-music": ["audio"], "video-music": ["audio"], "library-broll": ["video", "photo"], "video-broll": ["video", "photo"], "video-aroll": ["video"], "video-subs": ["subs"] };
 const badType = (kind, name) => {
   if (ACCEPT[kind].some((t) => EXT[t].test(name))) return "";
   if (/\.hei[cf]$/i.test(name)) return `"${name}" — iPhone-এর HEIC ছবি চলে না, JPG বা PNG করে দিন`;
@@ -443,6 +562,20 @@ const existing = (kind, slug) => {
 const VAGUE = /^(img|dsc|dscn|vid|mov|pxl|gopr|clip|video|untitled|final|new|screen|recording)[-_ ]?\d*$/i;
 const tidy = (n) => n.normalize("NFC").trim().replace(/\s+/g, "-").replace(/[^\p{L}\p{M}\p{N}._-]+/gu, "-").replace(/-+/g, "-").replace(/^[-.]+/, "");
 
+// ভিডিওর দৈর্ঘ্য (সেকেন্ড) আপলোডের আগেই — ব্রাউজার না পড়তে পারলে (যেমন ProRes) null
+const videoDuration = (file) =>
+  new Promise((done) => {
+    const v = document.createElement("video");
+    const src = URL.createObjectURL(file);
+    const end = (d) => { URL.revokeObjectURL(src); done(Number.isFinite(d) && d > 0 ? d : null); };
+    v.preload = "metadata";
+    v.muted = true;
+    v.onloadedmetadata = () => end(v.duration);
+    v.onerror = () => end(null);
+    setTimeout(() => end(null), 8000);
+    v.src = src;
+  });
+
 // একটা drop-জোন: data-kind = কোন ফোল্ডার; data-rename = আপলোডের আগে নাম দেখাও
 const wireDrop = (drop, slug = "") => {
   const kind = drop.dataset.kind;
@@ -454,12 +587,32 @@ const wireDrop = (drop, slug = "") => {
   const setProg = (p) => { prog.classList.toggle("on", p !== null); $("i", prog).style.width = (p || 0) * 100 + "%"; };
 
   const send = async (file, name, overwrite = false) => {
+    const extra = {};
+    // ফুটেজ বদলানো: পুরনোটা সরে যায়; লেখা থাকলে দৈর্ঘ্য মিলিয়ে দেখি — কাট বদলালে লেখা আর মিলবে না
+    if (kind === "video-aroll") {
+      const v = S?.videos.find((x) => x.slug === slug);
+      if (v?.arollFile && !confirm(`${slug}-এর ফুটেজ "${file.name}" দিয়ে বদলাবেন?\n(পুরনোটা মুছে যাবে না — media/.removed/-এ থাকবে)`)) return;
+      if (v && (v.steps.subtitles || v.steps.transcript)) {
+        const d = await videoDuration(file);
+        if (d === null || Math.abs(d - v.durationSec) > 0.5) {
+          const why = d === null ? "নতুন ফুটেজের দৈর্ঘ্য এখানে বোঝা গেল না।" : `নতুন ফুটেজ ${fmt(d)}, আগেরটা ${fmt(v.durationSec)} — কাট বদলেছে।`;
+          if (!confirm(`${why}\nকাট বদলে থাকলে আগের লেখা আর ক্যাপশন সরে যাবে (media/.removed/-এ), এই কাটের SRT/VTT নতুন করে দিতে হবে। চালিয়ে যাবেন?`)) return;
+          extra.newcut = "1";
+        }
+      }
+    }
     // একই নাম থাকলে আপলোডের আগেই জিজ্ঞেস (বড় ফাইল পাঠিয়ে তারপর নয়)
-    if (!overwrite && existing(kind, slug).some((f) => f.name === name)) {
+    // লেখা বদলালে আগের বানান-ঠিক আর ক্যাপশন আবার করতে হয়
+    if (kind === "video-subs") {
+      const v = S?.videos.find((x) => x.slug === slug);
+      if ((v?.steps.subtitles || v?.steps.transcript) && !confirm(`${slug}-এর লেখা নতুন ফাইল দিয়ে বদলাবেন?\nআগের লেখা ও বানান-ঠিক করা কপি media/.removed/-এ যাবে; ক্যাপশন আর শট প্ল্যান আবার করাতে হবে।`)) return;
+    } else if (!overwrite && existing(kind, slug).some((f) => f.name === name)) {
       if (!confirm(`"${name}" নামে আগে থেকেই আছে। নতুনটা দিয়ে বদলাবেন?\n(পুরনোটা media/.removed/-এ থাকবে)`)) return;
       overwrite = true;
     }
-    const url = kind === "video-aroll" ? "/api/aroll?" + new URLSearchParams({ slug, name }) : "/api/upload?" + new URLSearchParams({ kind, slug, name, ...(overwrite ? { overwrite: "1" } : {}) });
+    const url = kind === "video-aroll" ? "/api/aroll?" + new URLSearchParams({ slug, name, ...extra })
+      : kind === "video-subs" ? "/api/subtitles?" + new URLSearchParams({ slug, name })
+      : "/api/upload?" + new URLSearchParams({ kind, slug, name, ...(overwrite ? { overwrite: "1" } : {}) });
     setProg(0);
     try {
       const r = await upload(url, file, setProg);
@@ -563,12 +716,12 @@ const fileList = (ul, files, emptyText, kind, slug = "") => {
 };
 
 // ===================== ভিডিও =====================
-const STEPS = [["aroll", "ফুটেজ"], ["transcribed", "ট্রান্সক্রাইব"], ["transcript", "বানান ঠিক"], ["captions", "ক্যাপশন"], ["edit", "শট প্ল্যান"], ["timeline", "যাচাই"], ["rendered", "রেন্ডার"]];
+const STEPS = [["aroll", "ফুটেজ"], ["subtitles", "লেখা (SRT)"], ["transcript", "বানান ঠিক"], ["captions", "ক্যাপশন"], ["edit", "শট প্ল্যান"], ["timeline", "যাচাই"], ["rendered", "রেন্ডার"]];
 // পরের কাজ: Claude-কে কী বলবেন (ফুটেজ না থাকলে আলাদা বক্সে আবার দেওয়ার জায়গা আসে)
 const nextStep = (v) => {
   const s = v.steps;
-  if (v.job && !v.job.ok) return [`${v.slug}-এর ট্রান্সক্রিপশন ব্যর্থ হয়েছে, দেখো কী সমস্যা`, "Claude-কে বলুন"];
-  if (!s.transcribed && !s.transcript) return s.aroll ? [`npm run transcribe -- ${v.slug}`, "টার্মিনালে চালান"] : null;
+  if (v.job && !v.job.ok) return [`${v.slug} তৈরি ব্যর্থ হয়েছে, দেখো কী সমস্যা`, "Claude-কে বলুন"];
+  if (!s.subtitles && !s.transcript) return null; // নিচে লেখা দেওয়ার জায়গা
   if (!s.timeline) return [`${v.slug} প্রসেস করো`, "Claude-কে বলুন"];
   if (!s.aroll) return null; // স্টুডিও/রেন্ডারে ফুটেজ লাগবে
   if (!s.rendered) return [`npm run studio -- ${v.slug}`, "দেখে নিন, তারপর Claude-কে বলুন \"রেন্ডার করো\""];
@@ -587,7 +740,29 @@ const makeCard = (slug) => {
   // ফুটেজ হারালে: একই ফুটেজ আবার দেওয়ার জায়গা
   const arollMsg = h("span");
   const arollDrop = h("div", { class: "drop", "data-kind": "video-aroll" }, h("b", {}, "ফুটেজ (A-roll) আবার দিন"), h("br"), "টেনে আনুন বা ক্লিক করুন", h("input", { type: "file", accept: "video/*" }));
-  const arollBox = h("div", { class: "notice", hidden: true }, h("b", {}, "⚠ এই ভিডিওর ফুটেজ ফোল্ডারে নেই। "), arollMsg, arollDrop);
+  const arollBox = h("div", { class: "notice", hidden: true }, h("b", {}, "⚠ এই ভিডিওর ফুটেজ ফোল্ডারে নেই। "), arollMsg);
+  // ফুটেজ আছে: নাম/মাপ/দৈর্ঘ্য, "বদলান" (একই drop-এর ফাইল বাছাই খোলে) আর "সরান"
+  const arollWrap = h("div", {}, arollDrop); // drop + নাম-বক্স/প্রোগ্রেস একসাথে সরে
+  const arollInfo = h("span", { style: "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" });
+  const removeAroll = h("button", { class: "link", onclick: async () => {
+    if (!confirm(`${slug}-এর ফুটেজ সরাবেন?\nলেখা, নোট, B-roll, প্ল্যান সব থাকবে; প্রিভিউ/রেন্ডারের আগে আবার ফুটেজ দিতে হবে।\n(মুছে যাবে না — media/.removed/-এ থাকবে)`)) return;
+    try { S = await api("/api/remove?" + new URLSearchParams({ kind: "aroll", slug }), { method: "POST" }); render(); toast("✓ ফুটেজ সরানো হয়েছে"); }
+    catch (e) { toast(e.message, true); }
+  } }, "সরান");
+  const footage = h("div", { style: "margin-bottom:14px" },
+    h("div", { class: "row" }, h("b", {}, "ফুটেজ:"), arollInfo,
+      h("button", { class: "btn ghost", onclick: () => $("input", arollDrop).click() }, "ফুটেজ বদলান"), removeAroll));
+  const removeVideo = h("button", { class: "link", onclick: async () => {
+    if (!confirm(`"${slug}" পুরো ভিডিওটা সরাবেন?\nফুটেজ, লেখা, B-roll, মিউজিক, নোট, প্ল্যান, আউটপুট — সব।\n(মুছে যাবে না — media/.removed/videos/-এ থাকবে)`)) return;
+    try { S = await api("/api/remove?" + new URLSearchParams({ kind: "video", slug }), { method: "POST" }); render(); toast(`✓ "${slug}" সরানো হয়েছে`); }
+    catch (e) { toast(e.message, true); }
+  } }, "এই ভিডিও পুরো সরান");
+
+  // লেখা (SRT/VTT): না থাকলে সামনে বড় করে, থাকলে "রিসোর্স আর নোট"-এর ভেতরে বদলানোর জায়গা
+  const subsDrop = h("div", { class: "drop", "data-kind": "video-subs" }, h("b", {}, "লেখা (SRT / VTT) দিন"), h("br"), "সময়সহ সাবটাইটেল ফাইল — এই কাটেরই", h("input", { type: "file", accept: ".srt,.vtt" }));
+  const subsBox = h("div", { class: "notice", hidden: true }, h("b", {}, "এই ভিডিওর লেখা এখনো দেওয়া হয়নি। "), "CapCut, YouTube, Premiere বা অন্য কোথাও থেকে SRT/VTT এক্সপোর্ট করে দিন — সময় ফুটেজের সাথে মিলতে হবে।");
+  const subsWrap = h("div", {}, subsDrop); // drop + তার নাম-বক্স/প্রোগ্রেস একসাথে সরে
+  const subsSlot = h("div");
 
   // নোট: Claude এটা পড়ে শট প্ল্যান/বানান ঠিক করার সময়। ঘর থেকে বের হলেই নিজে সেভ হয়
   const notes = h("textarea", { placeholder: "যেমন:\n- ধরন: পণ্যের মার্কেটিং ভিডিও (বা টিউটোরিয়াল)\n- কোথায় যাবে: Facebook + Reels (বা YouTube)\n- মেশিনের নাম: ATI Laser 6000W, দাম ৳১২,৫০,০০০\n- অফার: ঢাকায় ফ্রি ডেলিভারি, ২ বছর ওয়ারেন্টি\n- 0:45 থেকে মেশিনের B-roll বেশি ব্যবহার করো" });
@@ -619,6 +794,7 @@ const makeCard = (slug) => {
     h("div", { class: "grid2", style: "margin-top:14px" },
       h("div", {}, brollDrop, bList),
       h("div", {}, musicDrop, mList)),
+    subsSlot,
     h("label", { class: "f", style: "margin-top:18px" }, "Claude-এর জন্য নোট", h("small", {}, "ভিডিওর ধরন (মার্কেটিং / টিউটোরিয়াল), কোথায় যাবে, পণ্যের নাম, দাম, অফার, কোথায় কী দেখাবে — Claude বানান ঠিক আর শট প্ল্যানের সময় পড়বে"), notes),
     h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn ghost", onclick: saveNotes }, "নোট সেভ করো"), noteState, makeCurrent));
   // থাম্বনেইল: npm run thumbs দিয়ে বের করা ফ্রেম + বানানো থাম্বনেইল
@@ -626,9 +802,11 @@ const makeCard = (slug) => {
   const thumbBody = h("div");
   const thumbs = h("details", {}, thumbSum, thumbBody,
     h("p", { class: "hint", style: "margin-top:10px" }, "পছন্দের ফ্রেম বেছে Claude-কে বলুন: ", h("code", {}, `${slug}-এর থাম্বনেইল বানাও, ফ্রেম ৩, লেখা: …`)));
-  const body = h("div", { hidden: true }, det, thumbs);
-  const el = h("div", { class: "card" }, head, steps, status, arollBox, body);
+  const body = h("div", { hidden: true }, footage, det, thumbs,
+    h("div", { class: "row", style: "margin-top:14px;justify-content:flex-end" }, removeVideo));
+  const el = h("div", { class: "card" }, head, steps, status, arollBox, subsBox, body);
   wireDrop(arollDrop, slug);
+  wireDrop(subsDrop, slug);
   wireDrop(brollDrop, slug);
   wireDrop(musicDrop, slug);
 
@@ -643,7 +821,7 @@ const makeCard = (slug) => {
     status.replaceChildren();
     if (running) {
       status.append(
-        h("div", { class: "claude" }, h("code", {}, v.job.waiting ? "⏳ অপেক্ষায় — আগের ভিডিওর ট্রান্সক্রিপশন শেষ হলে শুরু হবে।" : "⏳ ট্রান্সক্রাইব হচ্ছে… প্রথমবার মডেল নামতে কিছুক্ষণ লাগে।")),
+        h("div", { class: "claude" }, h("code", {}, v.job.waiting ? "⏳ অপেক্ষায় — আগের ভিডিও তৈরি শেষ হলে শুরু হবে।" : "⏳ ফুটেজ কপি আর যাচাই হচ্ছে…")),
         h("pre", { class: "log" }, lines.slice(-12).join("\n") || "শুরু হচ্ছে…"));
     } else {
       if (v.job && !v.job.ok) status.append(h("pre", { class: "log" }, lines.slice(-15).join("\n")));
@@ -661,9 +839,25 @@ const makeCard = (slug) => {
 
     const ready = Boolean(v.durationSec) && !running;
     arollBox.hidden = !ready || v.steps.aroll;
-    arollMsg.textContent = v.steps.transcribed || v.steps.transcript
+    arollMsg.textContent = v.steps.subtitles || v.steps.transcript
       ? "ক্যাপশন আর শট প্ল্যানের কাজ চলবে, কিন্তু প্রিভিউ আর রেন্ডারের আগে একই ফুটেজ (একই কাট) আবার দিতে হবে।"
-      : "ফুটেজ দিলে ট্রান্সক্রাইব নিজে থেকে শুরু হবে।";
+      : "প্রিভিউ আর রেন্ডারের আগে ফুটেজ দিতে হবে।";
+    // লেখা নেই → সামনে; আছে → ভেতরে "লেখা বদলান" (drop-টা একটাই, শুধু জায়গা বদলায়)
+    const hasSubs = v.steps.subtitles || v.steps.transcript;
+    subsBox.hidden = !ready || hasSubs;
+    $("b", subsDrop).textContent = hasSubs ? "লেখা (SRT / VTT) বদলান" : "লেখা (SRT / VTT) দিন";
+    const home = hasSubs ? subsSlot : subsBox;
+    if (subsWrap.parentElement !== home) home.append(subsWrap);
+    subsSlot.style.marginTop = hasSubs ? "18px" : "";
+    // ফুটেজ নেই → সতর্কবার্তায় বড় drop; আছে → উপরের "ফুটেজ:" সারিতে, drop লুকানো (শুধু প্রোগ্রেস দেখায়)
+    footage.hidden = !v.arollFile;
+    arollDrop.style.display = v.arollFile ? "none" : "";
+    const arollHome = v.arollFile ? footage : arollBox;
+    if (arollWrap.parentElement !== arollHome) arollHome.append(arollWrap);
+    if (v.arollFile) {
+      const info = [v.arollFile.name, size(v.arollFile.size), v.durationSec && fmt(v.durationSec)].filter(Boolean).join(" · ");
+      arollInfo.replaceChildren(h("a", { href: v.arollFile.url, target: "_blank", title: "খুলে দেখুন" }, info));
+    }
     body.hidden = !ready;
     if (!ready) return;
 
@@ -721,7 +915,7 @@ $("#newBtn").addEventListener("click", async () => {
   prog.classList.add("on");
   try {
     S = await upload(`/api/new?slug=${slug}&name=${encodeURIComponent(newFile.name)}`, newFile, (p) => ($("i", prog).style.width = p * 100 + "%"));
-    toast("✓ ফুটেজ রাখা হয়েছে, ট্রান্সক্রাইব শুরু");
+    toast("✓ ফুটেজ রাখা হয়েছে — এবার কার্ডে লেখা (SRT/VTT) দিন");
     $("#newSlug").value = ""; pickNew(null);
     render();
     if (cards.has(slug)) cards.get(slug).det.open = true;

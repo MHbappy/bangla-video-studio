@@ -1,8 +1,10 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { theme } from "../theme";
+import { CAPTION_POSITION, type CaptionXY } from "../timeline-types";
 import type { CaptionLine, Word } from "../types";
 import { isKeyword } from "./emphasis";
+import { captionBox } from "./position";
 
 const MAX_WORDS = 3;
 const MAX_CHARS = 16;
@@ -26,7 +28,8 @@ const toGroups = (lines: CaptionLine[]) => {
   return groups;
 };
 
-export const ShortsCaptions: React.FC<{ lines: CaptionLine[]; emphasis?: boolean }> = ({ lines, emphasis = true }) => {
+// pos = ক্যাপশনের জায়গা (captionPosition.vertical); নিচের ~২০% প্ল্যাটফর্মের লেখা/বোতামে ঢাকা
+export const ShortsCaptions: React.FC<{ lines: CaptionLine[]; emphasis?: boolean; pos?: CaptionXY }> = ({ lines, emphasis = true, pos = CAPTION_POSITION.vertical }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const groups = useMemo(() => toGroups(lines), [lines]);
@@ -40,38 +43,39 @@ export const ShortsCaptions: React.FC<{ lines: CaptionLine[]; emphasis?: boolean
   const fontSize = Math.round(width * 0.085);
 
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: height * 0.27 }}>
-      <div
-        style={{
-          transform: `scale(${scale})`,
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: `0 ${fontSize * 0.28}px`,
-          maxWidth: "86%",
-          fontFamily: theme.font,
-          fontWeight: 700,
-          fontSize,
-          lineHeight: 1.35,
-          textAlign: "center",
-        }}
-      >
-        {group.map((w, i) => {
-          const active = ms >= w.startMs && ms < w.endMs;
-          return (
-            <span
-              key={i}
-              style={{
-                color: active ? theme.color.accent : emphasis && isKeyword(w.text) ? theme.color.accent2 : "white",
-                WebkitTextStroke: `${fontSize * 0.05}px black`,
-                paintOrder: "stroke fill",
-                textShadow: "0 6px 18px rgba(0,0,0,0.55)",
-              }}
-            >
-              {w.text}
-            </span>
-          );
-        })}
+    <AbsoluteFill>
+      <div style={captionBox(pos, width, height, 0.86)}>
+        <div
+          style={{
+            transform: `scale(${scale})`,
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: `0 ${fontSize * 0.28}px`,
+            fontFamily: theme.font,
+            fontWeight: 700,
+            fontSize,
+            lineHeight: 1.35,
+            textAlign: "center",
+          }}
+        >
+          {group.map((w, i) => {
+            const active = ms >= w.startMs && ms < w.endMs;
+            return (
+              <span
+                key={i}
+                style={{
+                  color: active ? theme.color.accent : emphasis && isKeyword(w.text) ? theme.color.accent2 : "white",
+                  WebkitTextStroke: `${fontSize * 0.05}px black`,
+                  paintOrder: "stroke fill",
+                  textShadow: "0 6px 18px rgba(0,0,0,0.55)",
+                }}
+              >
+                {w.text}
+              </span>
+            );
+          })}
+        </div>
       </div>
     </AbsoluteFill>
   );
