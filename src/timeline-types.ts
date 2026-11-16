@@ -39,7 +39,8 @@ export type BrandFile = {
   logoOpacity?: number; // ডিফল্ট 0.9
   qr?: string | false; // QR কোডের ছবি (না দিলে qr.png; logo-র মতো একই জায়গায় খোঁজা হয়)
   social?: Social[];
-  contactBar?: false | { start?: number; every?: number; duration?: number; atEnd?: boolean }; // সেকেন্ড
+  // সেকেন্ড; always = পুরো ভিডিও জুড়ে (মোশন/PiP শট বাদে) — তখন start/every/duration/atEnd খাটে না
+  contactBar?: false | { start?: number; every?: number; duration?: number; atEnd?: boolean; always?: boolean };
   captionPosition?: CaptionPositionFile; // সব ভিডিওর ডিফল্ট ক্যাপশনের জায়গা (রিসোর্স ম্যানেজার থেকে); এক ভিডিওতে বদল → edit.json-এর captionPosition
 };
 

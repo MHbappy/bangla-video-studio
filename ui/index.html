@@ -228,7 +228,8 @@ details summary { cursor: pointer; font-weight: 600; }
         <div class="card">
           <h2>যোগাযোগ বার কখন আসবে</h2>
           <p class="hint">মোশন বা PiP শটের সময় বার আসে না, পরের ফাঁকা জায়গায় সরে যায়।</p>
-          <label class="switch"><input type="checkbox" id="barOn"> যোগাযোগ বার দেখাবে</label>
+          <div class="seg fmt" id="barMode"><button data-v="off">বন্ধ</button><button data-v="timed">মাঝে মাঝে</button><button data-v="always">সবসময়</button></div>
+          <p class="pnote" id="barModeNote"></p>
           <div class="grid2" id="barFields" style="margin-top:14px">
             <label class="f">প্রথমবার <small>কত সেকেন্ডে</small><input type="number" id="barStart" min="0" step="1"></label>
             <label class="f">কতক্ষণ পরপর <small>সেকেন্ড</small><input type="number" id="barEvery" min="4" step="1"></label>
@@ -367,7 +368,7 @@ const form = () => ({
   social: Object.fromEntries(SOCIAL.map(([t]) => [t, $("#s-" + t).value])),
   logoPosition: $("#logoPosition .on")?.dataset.v || "top-right",
   logoSize: Number($("#logoSize").value), logoOpacity: Number($("#logoOpacity").value),
-  contactBar: $("#barOn").checked ? { start: Number($("#barStart").value), every: Number($("#barEvery").value), duration: Number($("#barDuration").value), atEnd: $("#barAtEnd").checked } : false,
+  contactBar: barMode() === "off" ? false : { start: Number($("#barStart").value), every: Number($("#barEvery").value), duration: Number($("#barDuration").value), atEnd: $("#barAtEnd").checked, always: barMode() === "always" },
   captionPosition: { horizontal: { ...cap.horizontal }, vertical: { ...cap.vertical } },
 });
 const fillBrand = (b) => {
@@ -377,7 +378,7 @@ const fillBrand = (b) => {
   $("#logoSize").value = b.logoSize ?? 80;
   $("#logoOpacity").value = b.logoOpacity ?? 0.9;
   const bar = b.contactBar === false ? null : { start: 4, every: 30, duration: 7, atEnd: true, ...(b.contactBar || {}) };
-  $("#barOn").checked = Boolean(bar);
+  setBarMode(!bar ? "off" : bar.always ? "always" : "timed");
   const d = bar || { start: 4, every: 30, duration: 7, atEnd: true };
   $("#barStart").value = d.start; $("#barEvery").value = d.every; $("#barDuration").value = d.duration; $("#barAtEnd").checked = d.atEnd !== false;
   cap = { horizontal: { ...CAP_DEFAULT.horizontal, ...b.captionPosition?.horizontal }, vertical: { ...CAP_DEFAULT.vertical, ...b.captionPosition?.vertical } };
@@ -385,6 +386,10 @@ const fillBrand = (b) => {
   saved = JSON.stringify(form());
   refresh();
 };
+// যোগাযোগ বার: বন্ধ / মাঝে মাঝে (সময়ের ঘর অনুযায়ী) / সবসময় (মোশন/PiP শট বাদে পুরো ভিডিও)
+const barMode = () => $("#barMode .on")?.dataset.v || "timed";
+const setBarMode = (v) => $$("#barMode button").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
+$$("#barMode button").forEach((b) => b.addEventListener("click", () => { setBarMode(b.dataset.v); refresh(); }));
 const setSeg = (v) => $$("#logoPosition button").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
 $$("#logoPosition button").forEach((b) => b.addEventListener("click", () => { setSeg(b.dataset.v); refresh(); }));
 
@@ -394,8 +399,14 @@ const refresh = () => {
   const f = form();
   $("#logoSizeV").textContent = f.logoSize + "px";
   $("#logoOpacityV").textContent = Math.round(f.logoOpacity * 100) + "%";
-  $("#barFields").style.opacity = f.contactBar ? 1 : 0.4;
-  $$("#barFields input").forEach((i) => (i.disabled = !f.contactBar));
+  const timed = barMode() === "timed";
+  $("#barFields").style.opacity = timed ? 1 : 0.4;
+  $$("#barFields input").forEach((i) => (i.disabled = !timed));
+  $("#barModeNote").textContent = {
+    off: "ভিডিওতে যোগাযোগ বার আসবে না (লোগো থাকবে)।",
+    timed: "নিচের সময় অনুযায়ী মাঝে মাঝে আসে।",
+    always: "পুরো ভিডিও জুড়ে থাকে; ফোন আর সোশ্যাল পাতা ৫ সেকেন্ড পরপর বদলায়। ১৬:৯-এ ক্যাপশন সারাক্ষণ বারের উপরে থাকে।",
+  }[barMode()];
   const dirty = JSON.stringify(f) !== saved;
   $("#savebar").classList.toggle("on", dirty);
   drawPreview(f);

@@ -28,7 +28,8 @@
     "start": 4,
     "every": 30,
     "duration": 7,
-    "atEnd": true
+    "atEnd": true,
+    "always": true
   },
   "captionPosition": {
     "horizontal": {

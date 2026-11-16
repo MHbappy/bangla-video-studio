@@ -334,12 +334,19 @@ if (edit.brand !== false) {
   const bars: { startMs: number; endMs: number }[] = [];
   const hasContact = Boolean(b.phone || b.name || social.length || qr);
   if (b.contactBar !== false && hasContact) {
-    const cfg = { start: 4, every: 30, duration: 7, atEnd: true, ...b.contactBar };
+    const cfg = { start: 4, every: 30, duration: 7, atEnd: true, always: false, ...b.contactBar };
     const dur = cfg.duration * 1000;
-    if (cfg.duration < 2) errors.push("brand.contactBar.duration কমপক্ষে ২ সেকেন্ড");
+    const busy = shots.filter((s) => ["motion", "motion+aroll", "pip"].includes(s.layout)); // endscreen-এ বার থাকে — যোগাযোগের সেরা সময়
+    if (cfg.always) {
+      // সবসময়: মোশন/PiP শটের ফাঁকে ফাঁকে পুরো সময়টা; ৩s-এর ছোট ফাঁকে বার ঢুকে-বেরিয়ে চোখে লাগে — বাদ
+      let t = 0;
+      for (const s of [...busy, { startMs: totalMs, endMs: totalMs }]) {
+        if (s.startMs - t >= 3000) bars.push({ startMs: t, endMs: s.startMs });
+        t = Math.max(t, s.endMs + 300);
+      }
+    } else if (cfg.duration < 2) errors.push("brand.contactBar.duration কমপক্ষে ২ সেকেন্ড");
     else if (cfg.every < cfg.duration + 2) errors.push(`brand.contactBar.every কমপক্ষে duration + ২ (${cfg.duration + 2}) সেকেন্ড`);
     else {
-      const busy = shots.filter((s) => ["motion", "motion+aroll", "pip"].includes(s.layout));  // endscreen-এ বার থাকে — যোগাযোগের সেরা সময়
       const endStart = cfg.atEnd ? Math.max(0, totalMs - dur) : totalMs;
       let t = cfg.start * 1000;
       while (t + dur <= endStart - 2000) {

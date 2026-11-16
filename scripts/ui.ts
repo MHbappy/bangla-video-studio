@@ -160,10 +160,16 @@ const saveBrand = (body: Record<string, unknown>) => {
     contactBar:
       bar === false
         ? false
-        : { start: num(bar?.start, 0, 3600, 4), every: num(bar?.every, 4, 3600, 30), duration: num(bar?.duration, 2, 60, 7), atEnd: bar?.atEnd !== false },
+        : {
+            start: num(bar?.start, 0, 3600, 4),
+            every: num(bar?.every, 4, 3600, 30),
+            duration: num(bar?.duration, 2, 60, 7),
+            atEnd: bar?.atEnd !== false,
+            always: bar?.always === true, // সময়ের ঘরগুলো রেখে দিই — "মাঝে মাঝে"-তে ফিরলে আগের মান থাকে
+          },
     captionPosition: { horizontal: capXY("horizontal"), vertical: capXY("vertical") },
   };
-  if (next.contactBar && (next.contactBar.every ?? 30) < (next.contactBar.duration ?? 7) + 2) throw new Error(`"কতক্ষণ পরপর" কমপক্ষে "কতক্ষণ থাকবে" + ২ সেকেন্ড হতে হবে`);
+  if (next.contactBar && !next.contactBar.always && (next.contactBar.every ?? 30) < (next.contactBar.duration ?? 7) + 2) throw new Error(`"কতক্ষণ পরপর" কমপক্ষে "কতক্ষণ থাকবে" + ২ সেকেন্ড হতে হবে`);
   writeJson(BRAND_JSON, next);
 };
 

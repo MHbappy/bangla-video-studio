@@ -99,7 +99,7 @@ Shot options: `broll: "name"` or `{ "file", "from": sec, "move": "slowZoomIn|slo
 - B-roll natural sound: machines, tools, cutting, sparks, engines, crowds → `"sound": 0.1–0.2` so the action is heard under the voice. Silent or noisy-irrelevant clips (wind, chatter) stay at 0. `npm run assets` marks clips 🔊 (has audio) / 🔇.
 - Keep `sfx` on (whoosh on big layout changes, pops on graphics). Set `sfx: false` on emotional or serious shots.
 
-**Branding:** the logo and contact bar come from `media/library/brand/brand.json` automatically — don't copy them into `edit.json`. Add `"brand"` only when the user asks for this video to differ: `false` turns branding off, or an object overrides single keys (`{ "contactBar": false }`, `{ "phone": "…" }`, `{ "contactBar": { "every": 45 } }`). The contact bar skips `motion`, `motion+aroll` and `pip` shots and lifts the 16:9 captions while it shows, so don't move shots to make room for it. Don't add a phone/contact `CTA` that repeats the bar.
+**Branding:** the logo and contact bar come from `media/library/brand/brand.json` automatically — don't copy them into `edit.json`. Add `"brand"` only when the user asks for this video to differ: `false` turns branding off, or an object overrides single keys (`{ "contactBar": false }`, `{ "phone": "…" }`, `{ "contactBar": { "every": 45 } }`, or `{ "contactBar": { "always": true } }` to keep it on for the whole video). The contact bar skips `motion`, `motion+aroll` and `pip` shots and lifts the 16:9 captions while it shows, so don't move shots to make room for it. Don't add a phone/contact `CTA` that repeats the bar.
 
 **Picture**
 - Slow motion: `"rate": 0.5` on action B-roll (cutting, pouring, sparks) only when `assets` shows 50/60 fps; on 24/30 fps it stutters (`plan` warns).

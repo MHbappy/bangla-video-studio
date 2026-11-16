@@ -9,6 +9,9 @@ import type { Social, TimelineBrand, TimelineShot } from "../timeline-types";
 const BAR_H = 120;
 const BAR_MARGIN = 36;
 const FADE_MS = 300;
+// এর চেয়ে লম্বা বারে ফোন/সোশ্যাল পাতা PAGE_S সেকেন্ড পরপর পালা করে
+const LONG_BAR_S = 12;
+const PAGE_S = 5;
 // খাড়া (Shorts): বার উপরে — ফ্রেমের উচ্চতার এই ভগ্নাংশে শুরু, এই উচ্চতার (1080p একক)
 const V_BAR_TOP = 0.085;
 const V_BAR_H = 104;
@@ -76,9 +79,18 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
 
   const hasPhone = Boolean(brand.phone);
   const hasSocial = brand.social.length > 0;
-  const half = Math.round(durationInFrames / 2);
-  // ০ = ফোন পাতা, ১ = সোশ্যাল পাতা
-  const page = hasPhone && hasSocial ? interpolate(frame, [half - 4, half + 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : hasSocial ? 1 : 0;
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+  // ০ = ফোন পাতা, ১ = সোশ্যাল পাতা। ছোট বার: অর্ধেক সময় পরে একবার বদল; লম্বা বার ("সবসময়"): PAGE_S পরপর পালা করে
+  const pageAt = () => {
+    if (durationInFrames <= LONG_BAR_S * fps) {
+      const half = Math.round(durationInFrames / 2);
+      return interpolate(frame, [half - 4, half + 4], [0, 1], clamp);
+    }
+    const len = Math.round(PAGE_S * fps);
+    const k = Math.floor(frame / len);
+    return k === 0 ? 0 : interpolate(frame - k * len, [0, 8], [(k + 1) % 2, k % 2], clamp);
+  };
+  const page = hasPhone && hasSocial ? pageAt() : hasSocial ? 1 : 0;
 
   // Shorts: উপরে, ছোট — নিচের ~২০% YouTube-এর লেখা/বোতামে ঢাকা পড়ে
   const h = (vertical ? V_BAR_H : BAR_H) * u;
