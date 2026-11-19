@@ -19,7 +19,7 @@ media/
         ├── transcript.json  ← Claude
         ├── edit.json        ← Claude (আপনি বদলাতে পারেন)
         ├── captions-index.txt, captions.json, timeline.json, assets.json, project.json  ← স্বয়ংক্রিয়
-        └── output/          ← final.mp4, shorts.mp4, graphics.mov, captions.srt, chapters.txt
+        └── output/          ← final.mp4, shorts.mp4, feed.mp4, graphics.mov, captions.srt, chapters.txt
 glossary.txt                 ← টেকনিক্যাল শব্দের বানান (সব ভিডিওর জন্য)
 src/theme.ts                 ← ব্র্যান্ড (একবার)
 ```

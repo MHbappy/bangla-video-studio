@@ -12,8 +12,8 @@
 | ৩ ক্যাপশন লাইন | কমান্ড | `npm run finalize -- <slug>` |
 | ৪ শট প্ল্যান → `edit.json` | Claude | Skill **bangla-video-edit-plan** (আগে `npm run assets`) |
 | ৫ যাচাই → `timeline.json` | কমান্ড | `npm run plan -- <slug>` (error নিজে ঠিক করবে) |
-| ৬ রিভিউ | ব্যবহারকারী | `npm run studio -- <slug>` (Claude এক শটের ছবি দেখে: `npm run frame -- <slug> --shot N [--format shorts]`) |
-| ৭ রেন্ডার | কমান্ড | `npm run render -- <slug> [--format main\|shorts\|graphics\|all] [--from s --to s] [--fast]` |
+| ৬ রিভিউ | ব্যবহারকারী | `npm run studio -- <slug>` (Claude এক শটের ছবি দেখে: `npm run frame -- <slug> --shot N [--format shorts\|feed]`) |
+| ৭ রেন্ডার | কমান্ড | `npm run render -- <slug> [--format main\|shorts\|feed\|graphics\|all — কয়েকটা: `main,feed`] [--from s --to s] [--fast]` |
 | ৮ থাম্বনেইল | Claude | `npm run thumbs -- <slug>` → ফ্রেম বেছে `--pick N --title "…"` (Skill **bangla-video-edit-plan**) |
 
 "নতুন ভিডিও প্রসেস করো" → ১–৫ নিজে চালাবে (লেখা না থাকলে ব্যবহারকারীর কাছে SRT/VTT চাইবে), তারপর রিভিউয়ের জন্য থামবে। রেন্ডার দীর্ঘ — চালানোর আগে জানাবে।
@@ -28,7 +28,9 @@
 B-roll/মিউজিকের নাম আগে ভিডিওর ফোল্ডারে, না পেলে `media/library/`-এ খোঁজা হয়। SFX: `media/library/sfx/whoosh.wav`, `pop.wav`।
 ব্র্যান্ড (লোগো, যোগাযোগ বার, QR): `media/library/brand/brand.json` + ছবি; এক ভিডিওতে বদল → `edit.json`-এ `brand`। কোড: `src/main/Brand.tsx`।
 ক্যাপশন / মোশন গ্রাফিক্স+SFX চালু-বন্ধ: রিসোর্স ম্যানেজার → `brand.json`-এর `captions` / `graphics`; এক ভিডিওতে → `edit.json`-এ একই নাম (`scripts/plan.ts` বন্ধ হলে gfx বাদ দেয়, motion শট → aroll)।
-ক্যাপশনের জায়গা (x, y; ১৬:৯ ও খাড়া আলাদা): রিসোর্স ম্যানেজার → `brand.json`-এর `captionPosition`; এক ভিডিওতে বদল → `edit.json`-এ `captionPosition`। কোড: `src/captions/position.ts`।
+৯:১৬-এ উপরের লোগো/বার `brand.verticalTop` % নিচে বসে (ডিফল্ট 14 — Reels-এর আইকনের নিচে); মুখ ফ্রেমের উপরে থাকলে সেই ভিডিওর `edit.json`-এ `"brand": { "verticalTop": 0 }`।
+৪:৫ feed ভার্সন (`--format feed` → `output/feed.mp4`, 1080×1350): খাড়া ফুটেজের উপর-নিচ কাটা পড়ে — কোন অংশ থাকবে `edit.json`-এর `feedFocus` (না দিলে `arollFocus`); LowerThird-এর `y` আর Callout ফুটেজের সাথে সরে। খাড়া ফুটেজে ব্যবহারকারী সাধারণত দুটো চান: `--format main,feed`। ধরন ঠিক করে `frameKind()` (`src/timeline-types.ts`)।
+ক্যাপশনের জায়গা (x, y; ১৬:৯, ৯:১৬ ও ৪:৫ আলাদা): রিসোর্স ম্যানেজার → `brand.json`-এর `captionPosition`; এক ভিডিওতে বদল → `edit.json`-এ `captionPosition`। কোড: `src/captions/position.ts`।
 
 ## কোড মানচিত্র
 - `src/main/Edit.tsx` — Main/Vertical/Graphics তিনটার রেন্ডারার; `geometry.ts` — লেআউটের জায়গা (১৬:৯ ও ৯:১৬)

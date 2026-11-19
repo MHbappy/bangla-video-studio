@@ -113,6 +113,7 @@ details summary { cursor: pointer; font-weight: 600; }
 .preview { position: relative; border-radius: 12px; overflow: hidden; margin: 0 auto; background: linear-gradient(160deg, #3a4a5e, #1d2633); }
 .preview.f-main, .preview.f-graphics { aspect-ratio: 16/9; width: 100%; }
 .preview.f-shorts { aspect-ratio: 9/16; height: min(52vh, 560px); max-width: 100%; }
+.preview.f-feed { aspect-ratio: 4/5; }
 .preview.f-graphics { background: repeating-conic-gradient(#8a8f98 0 25%, #c3c7ce 0 50%) 0 0 / 16px 16px; }
 .preview.f-graphics .face, .preview.f-graphics .body { display: none; }
 .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; --u: 1; font-family: "Hind Siliguri", sans-serif; }
@@ -122,6 +123,7 @@ details summary { cursor: pointer; font-weight: 600; }
 .f-shorts .stage .body { top: 50%; width: 74%; height: 50%; }
 .stage .logo { position: absolute; filter: drop-shadow(0 2px 8px rgba(0,0,0,.45)); }
 .stage .safe { position: absolute; left: 0; right: 0; bottom: 0; height: 20%; background: rgba(0,0,0,.35); border-top: 4px dashed rgba(255,255,255,.55); color: rgba(255,255,255,.8); font-size: 38px; display: grid; place-items: center; text-align: center; padding: 0 60px; }
+.stage .safe.top { top: 0; bottom: auto; height: 14%; border-top: 0; border-bottom: 4px dashed rgba(255,255,255,.55); background: rgba(0,0,0,.25); }
 .stage .pbar { position: absolute; display: flex; border-radius: calc(16px * var(--u)); overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
 .f-main .pbar, .f-graphics .pbar { left: calc(36px * var(--u)); bottom: calc(36px * var(--u)); max-width: calc(100% - 72px * var(--u)); }
 .f-shorts .pbar { top: 8.5%; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 80px * var(--u)); }
@@ -156,6 +158,7 @@ details summary { cursor: pointer; font-weight: 600; }
 .capctl .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .capctl p { margin: 0; color: var(--muted); font-size: 13px; }
 .seg.fmt { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; width: 100%; }
+#pFormat { grid-template-columns: repeat(2, 1fr); }
 .ptabs { display: flex; gap: 6px; margin-top: 10px; }
 
 .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); z-index: 9; transform: translateY(100%); transition: transform .2s; }
@@ -234,6 +237,7 @@ details summary { cursor: pointer; font-weight: 600; }
             <div>
               <label class="f">সাইজ <small id="logoSizeV"></small><input type="range" id="logoSize" min="30" max="240" step="5"></label>
               <label class="f" style="margin-top:8px">স্বচ্ছতা <small id="logoOpacityV"></small><input type="range" id="logoOpacity" min="0.1" max="1" step="0.05"></label>
+              <label class="f" style="margin-top:8px">৯:১৬-এ উপর থেকে কত নিচে <small id="vTopV"></small><input type="range" id="vTop" min="0" max="30" step="1"></label>
             </div>
           </div>
         </div>
@@ -256,15 +260,15 @@ details summary { cursor: pointer; font-weight: 600; }
         <div class="card">
           <h2>প্রিভিউ</h2>
           <p class="hint">মোটামুটি এরকম দেখাবে — প্রতিটা সাইজ আলাদা করে দেখুন।</p>
-          <div class="seg fmt" id="pFormat"><button data-v="main">▭ ১৬:৯ মূল ভিডিও</button><button data-v="shorts">▯ ৯:১৬ Shorts/Reels</button><button data-v="graphics">◩ স্বচ্ছ গ্রাফিক্স</button></div>
-          <div class="preview f-main" id="preview"><div class="stage" id="pStage"><div class="face"></div><div class="body"></div><div class="safe" id="pSafe">এখানে YouTube/Reels-এর লেখা ও বোতাম থাকে</div><img class="logo" id="pLogo" alt=""><div class="pbar" id="pBar"></div><div class="pcap" id="pCap"></div></div></div>
+          <div class="seg fmt" id="pFormat"><button data-v="main">▭ ১৬:৯ মূল ভিডিও</button><button data-v="shorts">▯ ৯:১৬ Shorts/Reels</button><button data-v="feed">▯ ৪:৫ Feed</button><button data-v="graphics">◩ স্বচ্ছ গ্রাফিক্স</button></div>
+          <div class="preview f-main" id="preview"><div class="stage" id="pStage"><div class="face"></div><div class="body"></div><div class="safe" id="pSafe">এখানে YouTube/Reels-এর লেখা ও বোতাম থাকে</div><div class="safe top" id="pSafeTop">এখানে Reels-এর আইকন থাকে</div><img class="logo" id="pLogo" alt=""><div class="pbar" id="pBar"></div><div class="pcap" id="pCap"></div></div></div>
           <p class="pnote" id="pNote"></p>
           <div class="ptabs"><button class="btn ghost" data-page="0">ফোন পাতা</button><button class="btn ghost" data-page="1">সোশ্যাল পাতা</button></div>
           <div class="capctl">
             <div class="row"><h3>ক্যাপশনের জায়গা <small id="capFor"></small></h3><button class="link" id="capReset" type="button">ডিফল্টে ফেরাও</button></div>
             <label class="f">ডানে-বাঁয়ে (X) <small id="capXV"></small><input type="range" id="capX" min="10" max="90" step="1"></label>
             <label class="f">উপরে-নিচে (Y) <small id="capYV"></small><input type="range" id="capY" min="15" max="97" step="0.5"></label>
-            <p>১৬:৯ আর ৯:১৬-এর জায়গা আলাদা — উপরের সাইজ বদলে প্রতিটা ঠিক করুন। সেভের পর ভিডিওতে আনতে <code>npm run plan</code>।</p>
+            <p>১৬:৯, ৯:১৬ আর ৪:৫-এর জায়গা আলাদা — উপরের সাইজ বদলে প্রতিটা ঠিক করুন। সেভের পর ভিডিওতে আনতে <code>npm run plan</code>।</p>
           </div>
         </div>
       </div>
@@ -380,9 +384,9 @@ const form = () => ({
   name: $("#name").value, address: $("#address").value, phone: $("#phone").value, phoneLabel: $("#phoneLabel").value,
   social: Object.fromEntries(SOCIAL.map(([t]) => [t, $("#s-" + t).value])),
   logoPosition: $("#logoPosition .on")?.dataset.v || "top-right",
-  logoSize: Number($("#logoSize").value), logoOpacity: Number($("#logoOpacity").value),
+  logoSize: Number($("#logoSize").value), logoOpacity: Number($("#logoOpacity").value), verticalTop: Number($("#vTop").value),
   contactBar: barMode() === "off" ? false : { start: Number($("#barStart").value), every: Number($("#barEvery").value), duration: Number($("#barDuration").value), atEnd: $("#barAtEnd").checked, always: barMode() === "always" },
-  captionPosition: { horizontal: { ...cap.horizontal }, vertical: { ...cap.vertical } },
+  captionPosition: capAll(cap),
   captions: $("#showCaptions").checked, graphics: $("#showGraphics").checked,
 });
 const fillBrand = (b) => {
@@ -391,11 +395,12 @@ const fillBrand = (b) => {
   setSeg(b.logoPosition || "top-right");
   $("#logoSize").value = b.logoSize ?? 80;
   $("#logoOpacity").value = b.logoOpacity ?? 0.9;
+  $("#vTop").value = b.verticalTop ?? 14;
   const bar = b.contactBar === false ? null : { start: 4, every: 30, duration: 7, atEnd: true, ...(b.contactBar || {}) };
   setBarMode(!bar ? "off" : bar.always ? "always" : "timed");
   const d = bar || { start: 4, every: 30, duration: 7, atEnd: true };
   $("#barStart").value = d.start; $("#barEvery").value = d.every; $("#barDuration").value = d.duration; $("#barAtEnd").checked = d.atEnd !== false;
-  cap = { horizontal: { ...CAP_DEFAULT.horizontal, ...b.captionPosition?.horizontal }, vertical: { ...CAP_DEFAULT.vertical, ...b.captionPosition?.vertical } };
+  cap = capAll(b.captionPosition);
   syncCap();
   $("#showCaptions").checked = b.captions !== false;
   $("#showGraphics").checked = b.graphics !== false;
@@ -415,6 +420,7 @@ const refresh = () => {
   const f = form();
   $("#logoSizeV").textContent = f.logoSize + "px";
   $("#logoOpacityV").textContent = Math.round(f.logoOpacity * 100) + "%";
+  $("#vTopV").textContent = f.verticalTop + "% — উপরের লোগো আর বার; Reels-এর আইকনের নিচে রাখতে ১৪%, মুখ ফ্রেমের উপরে থাকলে কমান";
   const timed = barMode() === "timed";
   $("#barFields").style.opacity = timed ? 1 : 0.4;
   $$("#barFields input").forEach((i) => (i.disabled = !timed));
@@ -439,13 +445,15 @@ $("#tab-brand").addEventListener("input", refresh);
 const FORMATS = {
   main: { w: 1920, h: 1080, u: 1, note: "final.mp4 — YouTube/Facebook-এর মূল ভিডিও।" },
   shorts: { w: 1080, h: 1920, u: 0.9, note: "shorts.mp4 — বার উপরে আসে (নিচে YouTube/Reels-এর লেখা ঢাকে); ঠিকানা আর QR দেখায় না। split/PiP/মোশন শটে বার লুকায়।" },
+  feed: { w: 1080, h: 1350, u: 0.9, note: "feed.mp4 (npm run render -- --format feed) — Facebook/Instagram feed-এ কাটা ছাড়া পুরোটা দেখায়। খাড়া ফুটেজের উপর-নিচ কাটা পড়ে; এখানে প্ল্যাটফর্মের বোতাম ভিডিওর উপরে বসে না, তাই ক্যাপশন নিচে রাখা যায়।" },
   graphics: { w: 1920, h: 1080, u: 1, note: "graphics.mov — স্বচ্ছ ব্যাকগ্রাউন্ডে শুধু লোগো/বার/গ্রাফিক্স, নিজের এডিটরে ফুটেজের উপর বসাতে।" },
 };
 // ক্যাপশনের জায়গা (brand.json-এর captionPosition) — ডিফল্ট আর সীমা src/timeline-types.ts-এর CAPTION_POSITION / CAPTION_RANGE
-const CAP_DEFAULT = { horizontal: { x: 50, y: 93.5 }, vertical: { x: 50, y: 73 } };
-const CAP_Y = { horizontal: [15, 97], vertical: [15, 85] };
-let cap = { horizontal: { ...CAP_DEFAULT.horizontal }, vertical: { ...CAP_DEFAULT.vertical } };
-const orient = () => (pFormat === "shorts" ? "vertical" : "horizontal");
+const CAP_DEFAULT = { horizontal: { x: 50, y: 93.5 }, vertical: { x: 50, y: 73 }, feed: { x: 50, y: 92 } };
+const CAP_Y = { horizontal: [15, 97], vertical: [15, 85], feed: [15, 97] };
+const capAll = (from) => Object.fromEntries(Object.keys(CAP_DEFAULT).map((o) => [o, { ...CAP_DEFAULT[o], ...from?.[o] }]));
+let cap = capAll();
+const orient = () => (pFormat === "shorts" ? "vertical" : pFormat === "feed" ? "feed" : "horizontal");
 // স্লাইডারে এখনকার সাইজের মান বসাই (সাইজ বদলালে বা সেভ/বাতিলের পর)
 const syncCap = () => {
   const o = orient();
@@ -471,11 +479,14 @@ $$("#pFormat button").forEach((b) => b.addEventListener("click", () => {
 }));
 
 const drawPreview = (f) => {
-  const F = FORMATS[pFormat], u = F.u, vertical = pFormat === "shorts";
+  const F = FORMATS[pFormat], u = F.u, vertical = pFormat === "shorts" || pFormat === "feed"; // দুটোই খাড়া লেআউট
   $$("#pFormat button").forEach((x) => x.classList.toggle("on", x.dataset.v === pFormat));
-  $("#preview").className = "preview f-" + pFormat;
+  $("#preview").className = "preview f-" + (pFormat === "feed" ? "shorts f-feed" : pFormat);
   $("#pNote").textContent = F.note;
-  $("#pSafe").hidden = !vertical;
+  $("#pSafe").hidden = $("#pSafeTop").hidden = pFormat !== "shorts";
+  // ৯:১৬-এ উপরের লোগো/বার Reels-এর আইকনের নিচে (Brand.tsx-এর vLogoTop / vBarTop); ৪:৫-এ একদম উপরে
+  const reelsTop = pFormat === "shorts" ? (F.h * f.verticalTop) / 100 : 0;
+  const logoTop = Math.max(60 * u, reelsTop);
   const st = $("#pStage");
   st.style.setProperty("--u", u);
   st.style.setProperty("--bh", (vertical ? 104 : 120) * u + "px");
@@ -488,7 +499,7 @@ const drawPreview = (f) => {
     const m = (vertical ? 60 : 40) * u + "px";
     const [v, hz] = f.logoPosition.split("-");
     logo.style.top = logo.style.bottom = logo.style.left = logo.style.right = "";
-    logo.style[v] = m; logo.style[hz] = m;
+    logo.style[v] = vertical && v === "top" ? logoTop + "px" : m; logo.style[hz] = m;
     logo.style.height = f.logoSize * u + "px";
     logo.style.opacity = f.logoOpacity;
   } else logo.style.display = "none";
@@ -501,6 +512,7 @@ const drawPreview = (f) => {
   const address = !vertical && f.address;
   const hasAny = f.name || address || f.phone || socials.length || qr;
   bar.style.display = f.contactBar && hasAny ? "" : "none";
+  if (vertical) bar.style.top = Math.max(F.h * 0.085, reelsTop) + "px";
   if (f.name || address) bar.append(h("div", { class: "nm" }, f.name && h("b", {}, f.name), address && h("small", {}, address)));
   const showSocial = socials.length && (page === 1 || !f.phone);
   if (f.phone || socials.length) {
@@ -527,7 +539,7 @@ const drawPreview = (f) => {
   capEl.style.left = (F.w * c.x) / 100 - cw / 2 + "px";
   capEl.style.bottom = cb + "px";
   capEl.replaceChildren(vertical ? h("div", {}, h("span", {}, "আপনারা"), h("span", { class: "on" }, "চাইলে"), h("span", {}, "এটা")) : h("div", {}, "আপনারা চাইলে এটা পানির নিচেও নিয়ে যেতে পারবেন"));
-  $("#capFor").textContent = vertical ? "— ৯:১৬ (Shorts / খাড়া ভিডিও)" : "— ১৬:৯";
+  $("#capFor").textContent = pFormat === "feed" ? "— ৪:৫ (Feed)" : vertical ? "— ৯:১৬ (Shorts / খাড়া ভিডিও)" : "— ১৬:৯";
   $("#capXV").textContent = `মাঝখান বাঁ থেকে ${c.x}%`;
   $("#capYV").textContent = `নিচের প্রান্ত উপর থেকে ${c.y}%`;
   if (lifted && f.captions) $("#pNote").textContent += " বার দেখানোর সময় ক্যাপশন বারের উপরে ওঠে; বার সরলে নিজের জায়গায় নামে।";
@@ -541,7 +553,7 @@ const drawPreview = (f) => {
     bar.style.left = right ? 40 * u + "px" : "auto";
     bar.style.right = right ? "auto" : 40 * u + "px";
     bar.style.maxWidth = F.w - (40 + 60 + 16) * u - lw + "px";
-    bar.style.top = 60 * u + Math.max(0, (lh - bar.offsetHeight) / 2) + "px";
+    bar.style.top = logoTop + Math.max(0, (lh - bar.offsetHeight) / 2) + "px";
   }
 };
 $$(".ptabs button").forEach((b) => b.addEventListener("click", () => { page = Number(b.dataset.page); refresh(); }));

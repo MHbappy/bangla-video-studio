@@ -6,7 +6,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import { type BrandFile, CAPTION_POSITION, CAPTION_RANGE } from "../src/timeline-types";
+import { type BrandFile, CAPTION_POSITION, CAPTION_RANGE, type FrameKind, VERTICAL_TOP } from "../src/timeline-types";
 import { readJson, writeJson } from "./lib";
 import { probeVideo } from "./media";
 import { binFor, isSlug, LIBRARY, MEDIA, opt, retire, setCurrent, VIDEOS, vpath } from "./paths";
@@ -140,7 +140,7 @@ const saveBrand = (body: Record<string, unknown>) => {
   const bar = body.contactBar as Record<string, unknown> | false;
   // ক্যাপশনের জায়গা: ঘর না এলে আগেরটা (বা ডিফল্ট) থাকে, সীমার বাইরে গেলে সীমায় আটকায়
   const cap = (body.captionPosition ?? {}) as Record<string, Record<string, unknown> | undefined>;
-  const capXY = (o: "horizontal" | "vertical") => ({
+  const capXY = (o: FrameKind) => ({
     x: num(cap[o]?.x, CAPTION_RANGE.x[0], CAPTION_RANGE.x[1], old.captionPosition?.[o]?.x ?? CAPTION_POSITION[o].x),
     y: num(cap[o]?.y, CAPTION_RANGE[o][0], CAPTION_RANGE[o][1], old.captionPosition?.[o]?.y ?? CAPTION_POSITION[o].y),
   });
@@ -157,6 +157,7 @@ const saveBrand = (body: Record<string, unknown>) => {
     logoPosition: (["top-left", "top-right", "bottom-left", "bottom-right"] as const).find((c) => c === body.logoPosition) ?? "top-right",
     logoSize: num(body.logoSize, 30, 240, 80),
     logoOpacity: num(body.logoOpacity, 0.1, 1, 0.9),
+    verticalTop: num(body.verticalTop, VERTICAL_TOP.min, VERTICAL_TOP.max, old.verticalTop ?? VERTICAL_TOP.default),
     contactBar:
       bar === false
         ? false
@@ -167,7 +168,7 @@ const saveBrand = (body: Record<string, unknown>) => {
             atEnd: bar?.atEnd !== false,
             always: bar?.always === true, // সময়ের ঘরগুলো রেখে দিই — "মাঝে মাঝে"-তে ফিরলে আগের মান থাকে
           },
-    captionPosition: { horizontal: capXY("horizontal"), vertical: capXY("vertical") },
+    captionPosition: { horizontal: capXY("horizontal"), vertical: capXY("vertical"), feed: capXY("feed") },
     // ঘর না এলে আগেরটা থাকে
     captions: typeof body.captions === "boolean" ? body.captions : (old.captions ?? true),
     graphics: typeof body.graphics === "boolean" ? body.graphics : (old.graphics ?? true),

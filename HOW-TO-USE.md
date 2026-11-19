@@ -106,6 +106,7 @@ Claude সবচেয়ে পরিষ্কার ফ্রেম বেছ�
 |---|---|
 | `final.mp4` | YouTube ভিডিও |
 | `shorts.mp4` | YouTube Shorts |
+| `feed.mp4` | Facebook / Instagram feed (৪:৫) — `npm run render -- laser-machine --format feed`; খাড়া ফুটেজে ৯:১৬ আর ৪:৫ একসাথে: `--format main,feed` |
 | `thumbnail.jpg` | থাম্বনেইল |
 | `captions.srt` | সাবটাইটেল |
 | `chapters.txt` | ভিডিওর বর্ণনায় পেস্ট (অধ্যায়) |

@@ -19,13 +19,18 @@ export const SOCIALS = ["facebook", "whatsapp", "youtube", "web", "phone"] as co
 export type Social = { type: (typeof SOCIALS)[number]; text: string };
 
 // ---- ক্যাপশনের জায়গা: x = মাঝখান (বাঁ থেকে %), y = নিচের প্রান্ত (উপর থেকে %) ----
-// horizontal = ১৬:৯ ফ্রেম, vertical = খাড়া ফ্রেম (Shorts / খাড়া ফুটেজ)
+// horizontal = ১৬:৯ ফ্রেম, vertical = খাড়া ৯:১৬ ফ্রেম (Shorts/Reels / খাড়া ফুটেজ), feed = ৪:৫ ফ্রেম (Facebook/Instagram feed)
 export type CaptionXY = { x: number; y: number };
-export type CaptionPosition = { horizontal: CaptionXY; vertical: CaptionXY };
-export type CaptionPositionFile = { horizontal?: Partial<CaptionXY>; vertical?: Partial<CaptionXY> };
-export const CAPTION_POSITION: CaptionPosition = { horizontal: { x: 50, y: 93.5 }, vertical: { x: 50, y: 73 } };
-// সীমা: ক্যাপশন ফ্রেমের বাইরে বা (খাড়ায়) একদম নিচের প্ল্যাটফর্ম-UI-তে না যায়
-export const CAPTION_RANGE = { x: [10, 90], horizontal: [15, 97], vertical: [15, 85] } as const;
+export const FRAME_KINDS = ["horizontal", "vertical", "feed"] as const;
+export type FrameKind = (typeof FRAME_KINDS)[number];
+export type CaptionPosition = Record<FrameKind, CaptionXY>;
+export type CaptionPositionFile = Partial<Record<FrameKind, Partial<CaptionXY>>>;
+// feed-এ ভিডিওর উপরে প্ল্যাটফর্মের লেখা/বোতাম বসে না — ক্যাপশন নিচে নামানো যায়
+export const CAPTION_POSITION: CaptionPosition = { horizontal: { x: 50, y: 93.5 }, vertical: { x: 50, y: 73 }, feed: { x: 50, y: 92 } };
+// সীমা: ক্যাপশন ফ্রেমের বাইরে বা (৯:১৬-এ) একদম নিচের প্ল্যাটফর্ম-UI-তে না যায়
+export const CAPTION_RANGE = { x: [10, 90], horizontal: [15, 97], vertical: [15, 85], feed: [15, 97] } as const;
+// ফ্রেমের ধরন: চওড়া → horizontal; খাড়া কিন্তু ২:৩-এর চেয়ে খাটো (৪:৫, ১:১-এর কাছাকাছি) → feed; বাকি খাড়া → vertical
+export const frameKind = (width: number, height: number): FrameKind => (height <= width ? "horizontal" : height / width < 1.5 ? "feed" : "vertical");
 
 // ---- ব্র্যান্ড: media/library/brand/brand.json (সব ভিডিওতে) + edit.json-এর "brand" (শুধু এই ভিডিওতে বদল) ----
 export type BrandFile = {
@@ -37,6 +42,9 @@ export type BrandFile = {
   logoPosition?: Corner; // ডিফল্ট "top-right"
   logoSize?: number; // 1080p-তে উচ্চতা px (ডিফল্ট 80)
   logoOpacity?: number; // ডিফল্ট 0.9
+  // ৯:১৬ ফ্রেমে উপরের লোগো আর যোগাযোগ বার উপর থেকে কত % নিচে (ডিফল্ট 14; সীমা 0–30; 0 = একদম উপরে) —
+  // Reels/Shorts-এ উপরের ~১৪%-এ অ্যাপের আইকন বসে। ১৬:৯ আর ৪:৫-এ খাটে না
+  verticalTop?: number;
   qr?: string | false; // QR কোডের ছবি (না দিলে qr.png; logo-র মতো একই জায়গায় খোঁজা হয়)
   social?: Social[];
   // সেকেন্ড; always = পুরো ভিডিও জুড়ে (মোশন/PiP শট বাদে) — তখন start/every/duration/atEnd খাটে না
@@ -56,7 +64,9 @@ export type TimelineBrand = {
   qr?: string;
   social: Social[];
   bars: { startMs: number; endMs: number }[]; // যোগাযোগ বার কখন কখন দেখাবে
+  verticalTop?: number; // ৯:১৬-এ লোগো/বারের উপরের দূরত্ব (%)
 };
+export const VERTICAL_TOP = { default: 14, min: 0, max: 30 } as const;
 
 export type Gfx = { scene: SceneName } & Record<string, unknown>;
 // রং মেলানো: 1 = যেমন আছে; 0.8–1.2 সাধারণ সীমা
@@ -95,6 +105,9 @@ export type MusicSection = { path: string; startMs: number; endMs: number; volum
 
 export type EditFile = {
   arollFocus?: string; // মুখ কোথায় (CSS object-position), যেমন "50% 35%"
+  // ৪:৫ feed রেন্ডারে (--format feed) ফুটেজের কোন অংশ থাকবে (না দিলে arollFocus): খাড়া ফুটেজের উপর-নিচ কাটা পড়ে —
+  // "50% 0%" = উপরের অংশ থাকে (মাথা ফ্রেমের উপরে হলে), "50% 100%" = নিচের অংশ
+  feedFocus?: string;
   captionStyle?: CaptionStyle; // ডিফল্ট "box"
   captions?: boolean; // false = এই ভিডিওতে ক্যাপশন নেই (brand.json-এর captions-এর উপর)
   graphics?: boolean; // false = মোশন গ্রাফিক্সের লেখা + সাউন্ড ইফেক্ট নেই; motion শট A-roll হয়ে যায় (brand.json-এর graphics-এর উপর)
@@ -128,6 +141,7 @@ export type TimelineShot = {
 
 export type Timeline = {
   arollFocus: string;
+  feedFocus?: string;
   arollGrade?: Grade;
   endScreenText?: string;
   captionStyle: CaptionStyle;

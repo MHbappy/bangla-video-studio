@@ -1,4 +1,4 @@
-// npm run frame -- [slug] --shot 7 [--format shorts]   → work/frames/shot-07.jpg (শটের মাঝামাঝি একটা ফ্রেম, পুরো এডিটসহ)
+// npm run frame -- [slug] --shot 7 [--format shorts|feed]   → work/frames/shot-07.jpg (শটের মাঝামাঝি একটা ফ্রেম, পুরো এডিটসহ)
 // npm run frame -- [slug] --at 42.5                    → work/frames/at-42.5.jpg
 // কেন: Callout-এর x,y বা কার্ড ফুটেজের কী ঢাকছে — রেন্ডার না করেই এক ছবিতে দেখে নেওয়া (Claude ছবিটা পড়ে ঠিক করে)
 import { existsSync, mkdirSync } from "node:fs";
@@ -13,9 +13,11 @@ const slug = resolveSlug(process.argv[2]);
 const project = readJson<{ fps: number; durationInFrames: number; width: number }>(vpath(slug, "project.json"));
 const shotArg = opt("shot");
 const atArg = opt("at");
-const vertical = opt("format") === "shorts";
+const fmt = opt("format");
+const vertical = fmt === "shorts" || fmt === "feed";
+const comp = fmt === "shorts" ? "Vertical" : fmt === "feed" ? "Feed" : "Main";
 if ((shotArg === undefined) === (atArg === undefined)) {
-  console.error(`ব্যবহার: npm run frame -- ${slug} --shot 7        (বা --at 42.5 সেকেন্ড; খাড়া দেখতে --format shorts)`);
+  console.error(`ব্যবহার: npm run frame -- ${slug} --shot 7        (বা --at 42.5 সেকেন্ড; খাড়া দেখতে --format shorts, ৪:৫ দেখতে --format feed)`);
   process.exit(1);
 }
 
@@ -47,8 +49,8 @@ if (shotArg !== undefined) {
 const frame = Math.min(project.durationInFrames - 1, Math.max(0, Math.round(sec * project.fps)));
 const dir = vpath(slug, "work", "frames");
 mkdirSync(dir, { recursive: true });
-const out = path.join(dir, `${name}${vertical ? "-shorts" : ""}.jpg`);
+const out = path.join(dir, `${name}${vertical ? `-${fmt}` : ""}.jpg`);
 // দেখার জন্য ~১২৮০px চওড়াই যথেষ্ট (4K-তেও দ্রুত); খাড়া ১০৮০px চওড়া → অর্ধেক
 const scale = vertical ? 0.5 : Math.min(1, 1280 / project.width);
-remotion(["still", vertical ? "Vertical" : "Main", out, props(slug), `--frame=${frame}`, `--scale=${scale}`, "--image-format=jpeg", "--jpeg-quality=85", "--log=error"]);
+remotion(["still", comp, out, props(slug), `--frame=${frame}`, `--scale=${scale}`, "--image-format=jpeg", "--jpeg-quality=85", "--log=error"]);
 console.log(`✓ ${out.split(path.sep).join("/")}  (${sec.toFixed(1)}s, ফ্রেম ${frame})`);

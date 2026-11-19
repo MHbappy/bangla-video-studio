@@ -6,7 +6,7 @@ import type { VideoProps } from "../data";
 import { Scene } from "../scenes";
 import { ShotLayoutContext } from "../scenes/common";
 import { SfxContext } from "../sfx";
-import { CAPTION_POSITION, GFX_OVERLAY, type Timeline, type TimelineShot } from "../timeline-types";
+import { CAPTION_POSITION, frameKind, GFX_OVERLAY, type Timeline, type TimelineShot } from "../timeline-types";
 import type { CaptionLine } from "../types";
 import { ARollLayer } from "./ARollLayer";
 import { BarClear, barProgress, barTop, BrandLayer } from "./Brand";
@@ -55,7 +55,9 @@ const Captions: React.FC<{ lines: CaptionLine[]; timeline: Timeline }> = ({ line
   if (shot.layout === "endscreen" && width > height) return null;
   const emphasis = timeline.captionEmphasis ?? true;
   const position = timeline.captionPosition ?? CAPTION_POSITION;
-  if (height > width) return <ShortsCaptions lines={lines} emphasis={emphasis} pos={position.vertical} />;
+  const kind = frameKind(width, height);
+  // পুরনো timeline.json-এ feed নেই — ডিফল্ট
+  if (kind !== "horizontal") return <ShortsCaptions lines={lines} emphasis={emphasis} pos={position[kind] ?? CAPTION_POSITION[kind]} />;
   // যোগাযোগ বার দেখালে ক্যাপশন তার উপরে সরে যায় (আগে থেকেই উপরে থাকলে নড়ে না)
   const pos = position.horizontal;
   const lift = barProgress(timeline.brand, ms) * Math.max(0, barTop(Math.min(width / 1920, height / 1080)) - height * (1 - pos.y / 100));
@@ -70,17 +72,27 @@ export const Edit: React.FC<VideoProps & { transparent?: boolean }> = ({ project
   if (!project || !timeline) return null;
   const f = (ms: number) => Math.round((ms / 1000) * fps);
   const sfxEnabled = timeline.sfx;
-  // Callout-এর x,y মূল ফ্রেমের জন্য লেখা — Shorts-এ ফুটেজ অন্যভাবে বসে, তাই একই জিনিসের উপর সরিয়ে নিই
-  // (জিনিসটা কাটা পড়ে গেলে তীর বাদ — ভুল জায়গা দেখানোর চেয়ে ভালো)
+  // ৪:৫ feed-এ ফুটেজের কোন অংশ থাকবে আলাদা করে বলা যায় (খাড়া ফুটেজের উপর-নিচ কাটা পড়ে)
+  const focus = (frameKind(W, H) === "feed" && timeline.feedFocus) || timeline.arollFocus;
+  // Callout-এর x,y আর LowerThird-এর y মূল ফ্রেমের জন্য লেখা — Shorts/feed-এ ফুটেজ অন্যভাবে বসে, তাই একই জিনিসের উপর সরিয়ে নিই
   const placed = (s: TimelineShot) => {
-    if (!s.gfx || s.gfx.scene !== "Callout" || !GFX_OVERLAY.includes(s.layout)) return s.gfx;
-    const at = mapPoint(Number(s.gfx.x ?? 50), Number(s.gfx.y ?? 50), s, project, W, H, timeline.arollFocus);
-    return at ? { ...s.gfx, ...at } : undefined;
+    if (!s.gfx || !GFX_OVERLAY.includes(s.layout)) return s.gfx;
+    if (s.gfx.scene === "Callout") {
+      // জিনিসটা কাটা পড়ে গেলে তীর বাদ — ভুল জায়গা দেখানোর চেয়ে ভালো
+      const at = mapPoint(Number(s.gfx.x ?? 50), Number(s.gfx.y ?? 50), s, project, W, H, focus);
+      return at ? { ...s.gfx, ...at } : undefined;
+    }
+    if (s.gfx.scene === "LowerThird" && typeof s.gfx.y === "number") {
+      // কার্ডের নিচের প্রান্ত ফুটেজের একই জায়গায়; ফ্রেমের বাইরে পড়লে নিজের ডিফল্ট জায়গায়
+      const at = mapPoint(50, s.gfx.y, s, project, W, H, focus);
+      return { ...s.gfx, y: at ? Math.min(95, Math.max(20, at.y)) : undefined };
+    }
+    return s.gfx;
   };
 
   return (
     <AbsoluteFill style={{ background: transparent ? undefined : "#000" }}>
-      {!transparent && <ARollLayer src={`videos/${project.slug}/${project.aroll}`} shots={timeline.shots} focus={timeline.arollFocus} grade={timeline.arollGrade} />}
+      {!transparent && <ARollLayer src={`videos/${project.slug}/${project.aroll}`} shots={timeline.shots} focus={focus} grade={timeline.arollGrade} />}
 
       {timeline.shots.map((s) => {
         const from = f(s.startMs);

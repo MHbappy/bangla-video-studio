@@ -3,7 +3,7 @@ import React from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { TopClearContext, useIsVertical, useUnit } from "../scenes/common";
 import { theme } from "../theme";
-import type { Social, TimelineBrand, TimelineShot } from "../timeline-types";
+import { frameKind, type Social, type TimelineBrand, type TimelineShot, VERTICAL_TOP } from "../timeline-types";
 
 // ১৬:৯-এ বারের মাপ (1080p একক) — ক্যাপশন এর উপরে সরে যায়
 const BAR_H = 120;
@@ -21,10 +21,19 @@ const V_LOGO_GAP = 16;
 // খাড়া ফ্রেমে লোগো উপরের কোণে থাকলে বার তার পাশে, একই লাইনে বসে (নইলে V_BAR_TOP-এ, মাঝখানে)
 const besideLogo = (brand: TimelineBrand | undefined) => (brand?.logo?.position.startsWith("top") ? brand.logo : undefined);
 
+// ৯:১৬-এ (Reels/Shorts) উপরের ~১৪%-এ অ্যাপের আইকন বসে — লোগো আর বার তার নিচে (brand.verticalTop %); ৪:৫ feed-এ ভিডিওর উপরে কিছু বসে না
+type Frame = { width: number; height: number };
+const reelsTop = (brand: TimelineBrand | undefined, { width, height }: Frame) =>
+  frameKind(width, height) === "vertical" ? (height * (brand?.verticalTop ?? VERTICAL_TOP.default)) / 100 : 0;
+// উপরের লোগোর (আর তার পাশের বারের) উপরের দূরত্ব, px
+const vLogoTop = (brand: TimelineBrand | undefined, f: Frame, u: number) => Math.max(V_LOGO_MARGIN * u, reelsTop(brand, f));
+// লোগো উপরে না থাকলে বার মাঝখানে — তার উপরের দূরত্ব, px
+const vBarTop = (brand: TimelineBrand | undefined, f: Frame) => Math.max(f.height * V_BAR_TOP, reelsTop(brand, f));
+
 // খাড়া ফ্রেমে বারের নিচের প্রান্ত (px, আনুমানিক) — উপরের overlay গ্রাফিক্স এর নিচে নামে
-const vBarBottom = (brand: TimelineBrand | undefined, height: number, u: number) => {
+const vBarBottom = (brand: TimelineBrand | undefined, f: Frame, u: number) => {
   const logo = besideLogo(brand);
-  return logo ? (V_LOGO_MARGIN + Math.max(logo.size, V_BAR_H)) * u : height * V_BAR_TOP + V_BAR_H * u;
+  return logo ? vLogoTop(brand, f, u) + Math.max(logo.size, V_BAR_H) * u : vBarTop(brand, f) + V_BAR_H * u;
 };
 
 // এই মুহূর্তে বার কতটা দৃশ্যমান (০–১) — ক্যাপশন সরানোর জন্য
@@ -52,17 +61,19 @@ const Icon: React.FC<{ type: Social["type"]; size: number; color?: string }> = (
   </svg>
 );
 
-const Logo: React.FC<{ logo: NonNullable<TimelineBrand["logo"]> }> = ({ logo }) => {
+const Logo: React.FC<{ brand: TimelineBrand; logo: NonNullable<TimelineBrand["logo"]> }> = ({ brand, logo }) => {
   const frame = useCurrentFrame();
+  const size = useVideoConfig();
   const u = useUnit();
   const vertical = useIsVertical();
   const m = (vertical ? V_LOGO_MARGIN : 40) * u;
   const [v, h] = logo.position.split("-");
+  const mv = vertical && v === "top" ? vLogoTop(brand, size, u) : m;
   const fade = interpolate(frame, [0, 15], [0, logo.opacity], { extrapolateRight: "clamp" });
   return (
     <Img
       src={staticFile(logo.path)}
-      style={{ position: "absolute", [v]: m, [h]: m, height: logo.size * u, opacity: fade, filter: "drop-shadow(0 2px 8px rgba(0,0,0,.45))" }}
+      style={{ position: "absolute", [v]: mv, [h]: m, height: logo.size * u, opacity: fade, filter: "drop-shadow(0 2px 8px rgba(0,0,0,.45))" }}
     />
   );
 };
@@ -70,7 +81,7 @@ const Logo: React.FC<{ logo: NonNullable<TimelineBrand["logo"]> }> = ({ logo }) 
 // একটা বার-উপস্থিতি: নিচ থেকে ওঠে; সোশ্যাল থাকলে অর্ধেক সময় পরে ফোন → সোশ্যাল বদলায়
 const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand, hidden }) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames, height } = useVideoConfig();
+  const { fps, durationInFrames, width, height } = useVideoConfig();
   const u = useUnit();
   const vertical = useIsVertical();
   const enter = spring({ frame, fps, config: theme.spring });
@@ -164,7 +175,7 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
     const right = logo.position.endsWith("right");
     const side = (near: boolean) => (near ? V_LOGO_MARGIN : 40) * u;
     return (
-      <AbsoluteFill style={{ padding: `${V_LOGO_MARGIN * u}px ${side(right)}px 0 ${side(!right)}px` }}>
+      <AbsoluteFill style={{ padding: `${vLogoTop(brand, { width, height }, u)}px ${side(right)}px 0 ${side(!right)}px` }}>
         <div style={{ display: "flex", flexDirection: right ? "row" : "row-reverse", alignItems: "center", gap: V_LOGO_GAP * u }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: right ? "flex-start" : "flex-end" }}>{card}</div>
           <Img src={staticFile(logo.path)} style={{ height: logo.size * u, flexShrink: 0, visibility: "hidden" }} />
@@ -176,7 +187,7 @@ const ContactBar: React.FC<{ brand: TimelineBrand; hidden: boolean }> = ({ brand
     <AbsoluteFill
       style={
         vertical
-          ? { justifyContent: "flex-start", alignItems: "center", padding: `${height * V_BAR_TOP}px ${40 * u}px 0` }
+          ? { justifyContent: "flex-start", alignItems: "center", padding: `${vBarTop(brand, { width, height })}px ${40 * u}px 0` }
           : { justifyContent: "flex-end", alignItems: "flex-start", padding: `0 0 ${BAR_MARGIN * u}px ${BAR_MARGIN * u}px` }
       }
     >
@@ -191,11 +202,11 @@ const VERTICAL_BUSY = ["split", "pip", "motion", "motion+aroll"];
 // খাড়া ফ্রেমে বার দেখানোর সময় এই শটের উপরের overlay গ্রাফিক্স বারের নিচে নামে (শটের Sequence-এর ভেতরে বসে)
 export const BarClear: React.FC<{ brand?: TimelineBrand; shot: TimelineShot; children: React.ReactNode }> = ({ brand, shot, children }) => {
   const frame = useCurrentFrame();
-  const { fps, height } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const u = useUnit();
   const vertical = useIsVertical();
   const ms = shot.startMs + (frame / fps) * 1000;
-  const clear = vertical && !VERTICAL_BUSY.includes(shot.layout) ? barProgress(brand, ms) * (vBarBottom(brand, height, u) + 24 * u) : 0;
+  const clear = vertical && !VERTICAL_BUSY.includes(shot.layout) ? barProgress(brand, ms) * (vBarBottom(brand, { width, height }, u) + 24 * u) : 0;
   return <TopClearContext.Provider value={clear}>{children}</TopClearContext.Provider>;
 };
 
@@ -209,7 +220,7 @@ export const BrandLayer: React.FC<{ brand: TimelineBrand; shots: TimelineShot[] 
   const hidden = vertical && Boolean(shot && VERTICAL_BUSY.includes(shot.layout));
   return (
     <AbsoluteFill>
-      {brand.logo && <Logo logo={brand.logo} />}
+      {brand.logo && <Logo brand={brand} logo={brand.logo} />}
       {brand.bars.map((b, i) => (
         <Sequence key={i} from={f(b.startMs)} durationInFrames={Math.max(1, f(b.endMs) - f(b.startMs))} premountFor={fps} name={`যোগাযোগ বার ${i + 1}`}>
           <ContactBar brand={brand} hidden={hidden} />

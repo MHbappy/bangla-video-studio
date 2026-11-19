@@ -12,6 +12,7 @@ import {
   CORNERS,
   type EditFile,
   FITS,
+  FRAME_KINDS,
   GFX_OVERLAY,
   LAYOUTS,
   MOVES,
@@ -22,6 +23,7 @@ import {
   SOCIALS,
   type Timeline,
   type TimelineShot,
+  VERTICAL_TOP,
 } from "../src/timeline-types";
 import { scanAssets } from "./assets";
 import { type CaptionLine, readJson, writeJson } from "./lib";
@@ -271,16 +273,16 @@ const captionStyle = showCaptions ? (edit.captionStyle ?? "box") : "none";
 if (!CAPTION_STYLES.includes(captionStyle)) errors.push(`captionStyle হবে ${CAPTION_STYLES.join(" | ")}`);
 // ক্যাপশনের জায়গা: ডিফল্ট ← brand.json-এর captionPosition (রিসোর্স ম্যানেজার) ← edit.json-এর captionPosition
 if ((edit as { captionY?: unknown }).captionY !== undefined) errors.push(`captionY এখন নেই — লিখুন "captionPosition": { "vertical": { "y": ${(edit as { captionY?: unknown }).captionY} } }`);
-const captionPosition: CaptionPosition = { horizontal: { ...CAPTION_POSITION.horizontal }, vertical: { ...CAPTION_POSITION.vertical } };
+const captionPosition: CaptionPosition = { horizontal: { ...CAPTION_POSITION.horizontal }, vertical: { ...CAPTION_POSITION.vertical }, feed: { ...CAPTION_POSITION.feed } };
 {
   const lib: CaptionPositionFile | undefined = libBrand.captionPosition;
   for (const [src, pos] of [["brand.json", lib], ["edit.json", edit.captionPosition]] as const) {
     if (pos === undefined) continue;
     if (!pos || typeof pos !== "object") {
-      errors.push(`${src}: captionPosition হবে { "horizontal": { "x", "y" }, "vertical": { "x", "y" } }`);
+      errors.push(`${src}: captionPosition হবে { "horizontal": { "x", "y" }, "vertical": { "x", "y" }, "feed": { "x", "y" } }`);
       continue;
     }
-    for (const o of ["horizontal", "vertical"] as const)
+    for (const o of FRAME_KINDS)
       for (const k of ["x", "y"] as const) {
         const v = pos[o]?.[k];
         if (v === undefined) continue;
@@ -290,6 +292,9 @@ const captionPosition: CaptionPosition = { horizontal: { ...CAPTION_POSITION.hor
       }
   }
 }
+
+const FOCUS = /^\s*\d+(\.\d+)?%\s+\d+(\.\d+)?%\s*$/;
+if (edit.feedFocus !== undefined && !(typeof edit.feedFocus === "string" && FOCUS.test(edit.feedFocus))) errors.push(`feedFocus হবে "50% 0%"-এর মতো (বাঁ থেকে %, উপর থেকে %)`);
 
 let sfx: Timeline["sfx"] = null;
 if (edit.sfx !== false && showGraphics) {
@@ -380,7 +385,9 @@ if (edit.brand !== false) {
     }
   } else if (b.contactBar && !hasContact) warns.push("ব্র্যান্ড: contactBar চালু কিন্তু name/phone/social/qr কিছুই নেই");
 
-  if (logo || bars.length) brand = { name: b.name, address: b.address, phone: b.phone, phoneLabel: b.phoneLabel, logo, qr, social, bars };
+  const verticalTop = b.verticalTop ?? VERTICAL_TOP.default;
+  if (typeof verticalTop !== "number" || !(verticalTop >= VERTICAL_TOP.min && verticalTop <= VERTICAL_TOP.max)) errors.push(`brand.verticalTop হবে ${VERTICAL_TOP.min}–${VERTICAL_TOP.max} (৯:১৬-এ লোগো/বার উপর থেকে কত %)`);
+  if (logo || bars.length) brand = { name: b.name, address: b.address, phone: b.phone, phoneLabel: b.phoneLabel, logo, qr, social, bars, verticalTop };
 }
 
 for (const w of warns) console.warn(`⚠ ${w}`);
@@ -389,7 +396,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-writeJson(vpath(slug, "timeline.json"), { arollFocus: edit.arollFocus ?? "50% 35%", arollGrade: edit.arollGrade, endScreenText: es?.text, captionStyle, captionPosition, captionEmphasis: edit.captionEmphasis ?? true, sfx, music, brand, shots } satisfies Timeline);
+writeJson(vpath(slug, "timeline.json"), { arollFocus: edit.arollFocus ?? "50% 35%", feedFocus: edit.feedFocus, arollGrade: edit.arollGrade, endScreenText: es?.text, captionStyle, captionPosition, captionEmphasis: edit.captionEmphasis ?? true, sfx, music, brand, shots } satisfies Timeline);
 
 // YouTube চ্যাপ্টার: ChapterCard শটগুলো থেকে
 const hms = (ms: number) => {

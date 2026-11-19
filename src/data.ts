@@ -35,6 +35,12 @@ export const sameSizeMetadata: CalculateMetadataFunction<VideoProps> = async ({ 
   return { props: { ...props, ...data }, width: data.project.width, height: data.project.height, fps: data.project.fps, durationInFrames: data.project.durationInFrames };
 };
 
+// Feed (৪:৫) — Facebook/Instagram feed-এ পুরোটা দেখা যায়; খাড়া ফুটেজের উপর-নিচ কেটে বসে
+export const feedMetadata: CalculateMetadataFunction<VideoProps> = async ({ props }) => {
+  const data = await loadVideo(props.slug);
+  return { props: { ...props, ...data }, width: 1080, height: 1350, fps: data.project.fps, durationInFrames: data.project.durationInFrames };
+};
+
 export const verticalMetadata: CalculateMetadataFunction<VideoProps> = async ({ props }) => {
   const data = await loadVideo(props.slug);
   return { props: { ...props, ...data }, width: 1080, height: 1920, fps: data.project.fps, durationInFrames: data.project.durationInFrames };

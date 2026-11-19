@@ -1,4 +1,4 @@
-// npm run render -- [slug] [--format main|shorts|graphics|all] [--fast] [--from 12 --to 58] [--no-master]
+// npm run render -- [slug] [--format main|shorts|feed|graphics|all | main,feed] [--fast] [--from 12 --to 58] [--no-master]
 import { existsSync, renameSync, rmSync } from "node:fs";
 import { readJson } from "./lib";
 import { masterLoudness } from "./media";
@@ -26,6 +26,7 @@ const quality = fast
 const jobs: Record<string, { comp: string; out: string; args: string[]; master: boolean }> = {
   main: { comp: "Main", out: `final${suffix}${fast ? "-preview" : ""}.mp4`, args: quality, master: !fast },
   shorts: { comp: "Vertical", out: `shorts${suffix}${fast ? "-preview" : ""}.mp4`, args: quality, master: !fast },
+  feed: { comp: "Feed", out: `feed${suffix}${fast ? "-preview" : ""}.mp4`, args: quality, master: !fast }, // ৪:৫ (1080×1350)
   graphics: {
     comp: "Graphics",
     out: `graphics${suffix}.mov`,
@@ -33,11 +34,12 @@ const jobs: Record<string, { comp: string; out: string; args: string[]; master: 
     master: false,
   },
 };
-const list = format === "all" ? ["main", "shorts", "graphics"] : [format];
+// কয়েকটা একসাথে: --format main,feed
+const list = format === "all" ? ["main", "shorts", "graphics"] : format.split(",").map((f) => f.trim()).filter(Boolean);
 for (const f of list) {
   const job = jobs[f];
   if (!job) {
-    console.error(`✗ --format হবে main | shorts | graphics | all`);
+    console.error(`✗ --format হবে main | shorts | feed | graphics | all`);
     process.exit(1);
   }
   const out = vpath(slug, "output", job.out);

@@ -1,7 +1,7 @@
 import React from "react";
 import { Composition, Folder } from "remotion";
 import "./fonts";
-import { sameSizeMetadata, verticalMetadata, type VideoProps } from "./data";
+import { feedMetadata, sameSizeMetadata, verticalMetadata, type VideoProps } from "./data";
 import { DemoAroll, DemoBroll, DemoLogo, DemoQr } from "./demo/DemoSources";
 import { Edit } from "./main/Edit";
 import { Thumbnail, type ThumbnailProps } from "./Thumbnail";
@@ -15,6 +15,7 @@ export const RemotionRoot: React.FC = () => (
   <>
     <Composition id="Main" component={Edit} calculateMetadata={sameSizeMetadata} {...base} />
     <Composition id="Vertical" component={Edit} calculateMetadata={verticalMetadata} {...base} />
+    <Composition id="Feed" component={Edit} calculateMetadata={feedMetadata} {...base} />
     <Composition id="Graphics" component={Graphics} calculateMetadata={sameSizeMetadata} {...base} />
     <Composition id="Thumbnail" component={Thumbnail} width={1280} height={720} fps={30} durationInFrames={1} defaultProps={{ title: "৬০০০W *লেজার* কাটার" } as ThumbnailProps} />
     <Folder name="demo-tools">
